@@ -103,7 +103,7 @@ function Payment() {
     const socketRef = useRef();
 
     const totalMembers = 1 + (data.teamMembers?.filter(m => m.name).length || 0);
-    const totalPrice = totalMembers * 400;
+    const totalPrice = totalMembers * 350;
 
     useEffect(() => {
         // **FIX**: Check if Cloudinary script is loaded
@@ -242,7 +242,7 @@ function Payment() {
                     <h1 className="font-naruto text-4xl md:text-5xl font-bold mb-2 text-center text-orange-500">
                         Final Mission: Payment
                     </h1>
-                    <p className="text-center text-lg text-gray-300 mb-8">(₹400 per person)</p>
+                    <p className="text-center text-lg text-gray-300 mb-8">(₹350 per person)</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="flex flex-col items-center bg-black/20 p-6 rounded-lg border border-gray-700/50">
