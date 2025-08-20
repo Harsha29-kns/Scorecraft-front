@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import kalasalingam from "/public/kalasalingam.png";
 import score from "/public/scorecraft.jpg";
 
-// A high-resolution, thematic background image is key.
-// I'm using a placeholder URL here. Replace it with a real URL or a local image.
-const narutoBgImage = "https://images.alphacoders.com/605/605592.png"; // Ensure this image is high quality and fits the theme
+
+const narutoBgImage = "https://images.alphacoders.com/605/605592.png";
 
 // Custom style for the Naruto font
 const narutoFontStyle = {
