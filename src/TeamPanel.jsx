@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import api from "./api";
 import { io } from "socket.io-client";
-import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import Modal from 'react-modal';
 
@@ -86,56 +85,67 @@ const LeaderboardModal = ({ isOpen, onClose, leaderboard }) => (
     </Modal>
 );
 
-const AttendanceModal = ({ isOpen, onClose, team, attendanceClass, attendanceIcon }) => (
-    <Modal
-        isOpen={isOpen}
-        onRequestClose={onClose}
-        style={{ ...customModalStyles, width: '800px', maxWidth: '95vw' }} // Wider modal for table
-        contentLabel="Attendance Tracker"
-        appElement={document.getElementById('root') || undefined}
-    >
-        <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-3">
-                <img src={attd} className="w-12" alt="Attendance Icon" />
-                <h2 className="text-2xl font-bold text-orange-400 font-naruto">ATTENDANCE TRACKER</h2>
+const AttendanceModal = ({ isOpen, onClose, team, attendanceClass, attendanceIcon }) => {
+    // --- NEW: Helper function to get status from the new data structure ---
+    const getAttendanceStatus = (member, round) => {
+        if (!member || !member.attendance || !Array.isArray(member.attendance)) {
+            return null;
+        }
+        const attendanceRecord = member.attendance.find(a => a.round == round);
+        return attendanceRecord ? attendanceRecord.status : null;
+    };
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onRequestClose={onClose}
+            style={{ ...customModalStyles, width: '800px', maxWidth: '95vw' }} // Wider modal for table
+            contentLabel="Attendance Tracker"
+            appElement={document.getElementById('root') || undefined}
+        >
+            <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-3">
+                    <img src={attd} className="w-12" alt="Attendance Icon" />
+                    <h2 className="text-2xl font-bold text-orange-400 font-naruto">ATTENDANCE TRACKER</h2>
+                </div>
+                <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors text-3xl font-light">×</button>
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors text-3xl font-light">×</button>
-        </div>
-        <div className="overflow-x-auto max-h-[60vh] pr-2">
-            {team ? (
-                <table className="min-w-full divide-y divide-gray-700 text-sm md:text-base">
-                    <thead className="bg-gray-900 sticky top-0">
-                        <tr className="text-white font-bold">
-                            <th className="px-4 py-3 text-left text-lg">Name</th>
-                            <th className="px-4 py-3 text-lg">1st Attd</th>
-                            <th className="px-4 py-3 text-lg">2nd Attd</th>
-                            <th className="px-4 py-3 text-lg">3rd Attd</th>
-                            <th className="px-4 py-3 text-lg">4th Attd</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-gray-800">
-                        <tr>
-                            <td className="border-t border-gray-700 px-4 py-2 font-medium">{team.name}</td>
-                            <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(team.lead?.FirstAttd)}>{attendanceIcon(team.lead?.FirstAttd)}</div></td>
-                            <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(team.lead?.SecondAttd)}>{attendanceIcon(team.lead?.SecondAttd)}</div></td>
-                            <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(team.lead?.ThirdAttd)}>{attendanceIcon(team.lead?.ThirdAttd)}</div></td>
-                            <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(team.lead?.FourthAttd)}>{attendanceIcon(team.lead?.FourthAttd)}</div></td>
-                        </tr>
-                        {team.teamMembers.map((member, index) => (
-                            <tr key={`${member.registrationNumber}-${index}`}>
-                                <td className="border-t border-gray-700 px-4 py-2">{member.name}</td>
-                                <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(member?.FirstAttd)}>{attendanceIcon(member?.FirstAttd)}</div></td>
-                                <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(member?.SecondAttd)}>{attendanceIcon(member?.SecondAttd)}</div></td>
-                                <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(member?.ThirdAttd)}>{attendanceIcon(member?.ThirdAttd)}</div></td>
-                                <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(member?.FourthAttd)}>{attendanceIcon(member?.FourthAttd)}</div></td>
+            <div className="overflow-x-auto max-h-[60vh] pr-2">
+                {team ? (
+                    <table className="min-w-full divide-y divide-gray-700 text-sm md:text-base">
+                        <thead className="bg-gray-900 sticky top-0">
+                            <tr className="text-white font-bold">
+                                <th className="px-4 py-3 text-left text-lg">Name</th>
+                                <th className="px-4 py-3 text-lg">Round 1</th>
+                                <th className="px-4 py-3 text-lg">Round 2</th>
+                                <th className="px-4 py-3 text-lg">Round 3</th>
+                                <th className="px-4 py-3 text-lg">Round 4</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            ) : <p className="text-center text-gray-400 py-4">Loading attendance data...</p>}
-        </div>
-    </Modal>
-);
+                        </thead>
+                        <tbody className="bg-gray-800">
+                            <tr>
+                                <td className="border-t border-gray-700 px-4 py-2 font-medium">{team.name} (Lead)</td>
+                                <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(getAttendanceStatus(team.lead, 1))}>{attendanceIcon(getAttendanceStatus(team.lead, 1))}</div></td>
+                                <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(getAttendanceStatus(team.lead, 2))}>{attendanceIcon(getAttendanceStatus(team.lead, 2))}</div></td>
+                                <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(getAttendanceStatus(team.lead, 3))}>{attendanceIcon(getAttendanceStatus(team.lead, 3))}</div></td>
+                                <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(getAttendanceStatus(team.lead, 4))}>{attendanceIcon(getAttendanceStatus(team.lead, 4))}</div></td>
+                            </tr>
+                            {team.teamMembers.map((member, index) => (
+                                <tr key={`${member.registrationNumber}-${index}`}>
+                                    <td className="border-t border-gray-700 px-4 py-2">{member.name}</td>
+                                    <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(getAttendanceStatus(member, 1))}>{attendanceIcon(getAttendanceStatus(member, 1))}</div></td>
+                                    <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(getAttendanceStatus(member, 2))}>{attendanceIcon(getAttendanceStatus(member, 2))}</div></td>
+                                    <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(getAttendanceStatus(member, 3))}>{attendanceIcon(getAttendanceStatus(member, 3))}</div></td>
+                                    <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(getAttendanceStatus(member, 4))}>{attendanceIcon(getAttendanceStatus(member, 4))}</div></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                ) : <p className="text-center text-gray-400 py-4">Loading attendance data...</p>}
+            </div>
+        </Modal>
+    );
+};
 
 const ReminderModal = ({ isOpen, onClose, reminderText }) => (
     <Modal
@@ -363,12 +373,10 @@ function TeamPanel() {
     };
 
     useEffect(() => {
-        // This timer updates the current time every second for the timeline tracker
         const timeUpdater = setInterval(() => {
             setCurrentTime(new Date());
         }, 1000);
 
-        // Attach all socket listeners unconditionally on component mount
         socket.on("client:newReminder", (data) => {
             if (data && data.message) {
                 setActiveReminder(data.message);
@@ -437,7 +445,6 @@ function TeamPanel() {
             setLeaderboard(leaderboard.slice(0, 10));
         });
 
-        // Logic that requires authentication
         if (localStorage.getItem("token")) {
             setLoading(true);
             axios.get(`${api}/event/students`).then((res) => {
@@ -462,7 +469,6 @@ function TeamPanel() {
             socket.emit("domainStat", "");
         }
 
-        // Cleanup function
         return () => {
             clearInterval(timeUpdater);
             socket.off("client:newReminder");
@@ -995,7 +1001,7 @@ function TeamPanel() {
         return (
             <div className="bg-gray-800/70 rounded-2xl p-6 border border-orange-500/30 h-full">
                 <div className="flex justify-center items-center gap-3 mb-8">
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     <h2 className="text-2xl text-center font-bold font-naruto text-orange-400">EVENT TRACKER</h2>
                 </div>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-8 md:space-y-0 md:space-x-2">
@@ -1024,7 +1030,7 @@ function TeamPanel() {
     
                                 {/* Connector Line (not for the last item) */}
                                 {index < eventMilestones.length - 1 && (
-                                     <div className={`flex-1 h-1.5 w-full md:w-auto mt-[-2rem] md:mt-0 md:mb-12 rounded-full transition-all duration-500 ${isCompleted ? 'bg-green-500' : 'bg-gray-600'}`}></div>
+                                    <div className={`flex-1 h-1.5 w-full md:w-auto mt-[-2rem] md:mt-0 md:mb-12 rounded-full transition-all duration-500 ${isCompleted ? 'bg-green-500' : 'bg-gray-600'}`}></div>
                                 )}
                             </React.Fragment>
                         );

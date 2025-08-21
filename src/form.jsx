@@ -2,11 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
+// --- Constants (assuming these are defined elsewhere or are fine as is) ---
 const narutoBgImage = "https://images6.alphacoders.com/605/605598.jpg";
-const narutoGifUrl =
-  "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMHpqeHMwY3dyYmt1amF0MDF0NzNjY2R5M2Jha21rMHRnNWN6OGVhZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xVxio2tNLAM5q/giphy.gif";
-const narutoMusicUrl = "/public/music/naruto-reg.mp3";
+const narutoGifUrl = "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMHpqeHMwY3dyYmt1amF0MDF0NzNjY2R5M2Jha21rMHRnNWN6OGVhZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xVxio2tNLAM5q/giphy.gif";
+const narutoMusicUrl = "/music/naruto-reg.mp3"; // Ensure this path is correct in your public folder
 
+// --- MusicPlayer Component (Unchanged) ---
 const MusicPlayer = ({ audioUrl }) => {
   const [isPlaying, setIsPlaying] = useState(true);
   const audioRef = useRef(null);
@@ -14,8 +15,8 @@ const MusicPlayer = ({ audioUrl }) => {
   useEffect(() => {
     const audioEl = audioRef.current;
     if (isPlaying) {
-      audioEl.play().catch((error) => {
-        console.warn("Autoplay was prevented");
+      audioEl.play().catch(() => {
+        console.warn("Autoplay was prevented by the browser.");
         setIsPlaying(false);
       });
     } else {
@@ -38,7 +39,7 @@ const MusicPlayer = ({ audioUrl }) => {
 
   return (
     <div className="absolute top-4 right-4 z-20">
-      <audio ref={audioRef} src={audioUrl} loop autoPlay playsInline />
+      <audio ref={audioRef} src={audioUrl} loop playsInline />
       <button
         onClick={togglePlayPause}
         className="w-12 h-12 bg-orange-500/80 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-orange-400/50 hover:bg-orange-600 transition-all"
@@ -54,7 +55,10 @@ const MusicPlayer = ({ audioUrl }) => {
   );
 };
 
+
+// --- Main Form Component ---
 function Form() {
+  // --- STATE: Added year, department, and section fields ---
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -62,11 +66,23 @@ function Form() {
     teamname: '',
     type: '',
     room: '',
-    teamMembers: Array(4).fill({ name: '', registrationNumber: '', type: '', room: '' })
+    year: '',
+    department: '',
+    section: '',
+    teamMembers: Array(4).fill({
+        name: '',
+        registrationNumber: '',
+        type: '',
+        room: '',
+        year: '',
+        department: '',
+        section: ''
+    })
   });
   const [errors, setErrors] = useState({});
   const nav = useNavigate();
 
+  // --- Effects for localStorage (Unchanged) ---
   useEffect(() => {
     const savedData = localStorage.getItem('formData');
     if (savedData) {
@@ -78,10 +94,9 @@ function Form() {
     localStorage.setItem('formData', JSON.stringify(formData));
   }, [formData]);
 
+  // --- Handlers (Unchanged, they are generic and will work with new fields) ---
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    // Auto-clear room if Day's Scholar is selected
     if (name === 'type' && value === "Day's Scholar") {
       setFormData({ ...formData, [name]: value, room: '' });
     } else {
@@ -99,24 +114,34 @@ function Form() {
     setFormData({ ...formData, teamMembers: updatedTeamMembers });
   };
 
+  // --- VALIDATION: Updated to include new fields ---
   const validate = () => {
     const newErrors = {};
+    // Lead validation
     if (!formData.name) newErrors.name = 'Name is required';
     if (!formData.email) newErrors.email = 'Email is required';
     if (!formData.registrationNumber) newErrors.registrationNumber = 'Registration Number is required';
     if (!formData.teamname) newErrors.teamname = 'Team Name is required';
     if (!formData.type) newErrors.type = 'Type is required';
+    if (!formData.year) newErrors.year = 'Year is required';
+    if (!formData.department) newErrors.department = 'Department is required';
+    if (!formData.section) newErrors.section = 'Section is required';
 
     if (formData.type !== "Day's Scholar" && !formData.room) {
       newErrors.room = 'Room Number is required';
     }
 
+    // Team members validation
     formData.teamMembers.forEach((member, index) => {
-      if (!member.name) newErrors[`teamMember${index}Name`] = `Team Member ${index + 1} Name is required`;
-      if (!member.registrationNumber) newErrors[`teamMember${index}RegistrationNumber`] = `Team Member ${index + 1} Registration Number is required`;
-      if (!member.type) newErrors[`teamMember${index}Type`] = `Team Member ${index + 1} Type is required`;
+      if (!member.name) newErrors[`teamMember${index}Name`] = `Member ${index + 1} Name is required`;
+      if (!member.registrationNumber) newErrors[`teamMember${index}RegistrationNumber`] = `Member ${index + 1} Reg No is required`;
+      if (!member.type) newErrors[`teamMember${index}Type`] = `Member ${index + 1} Type is required`;
+      if (!member.year) newErrors[`teamMember${index}Year`] = `Member ${index + 1} Year is required`;
+      if (!member.department) newErrors[`teamMember${index}Department`] = `Member ${index + 1} Dept is required`;
+      if (!member.section) newErrors[`teamMember${index}Section`] = `Member ${index + 1} Section is required`;
+
       if (member.type !== "Day's Scholar" && !member.room) {
-        newErrors[`teamMember${index}Room`] = `Team Member ${index + 1} Room Number is required`;
+        newErrors[`teamMember${index}Room`] = `Member ${index + 1} Room No is required`;
       }
     });
 
@@ -135,8 +160,8 @@ function Form() {
     }
   };
 
-  const inputStyles =
-    "w-full h-12 rounded-lg p-3 bg-gray-800/60 border-2 border-orange-500/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all";
+  // --- Styles (Unchanged) ---
+  const inputStyles = "w-full h-12 rounded-lg p-3 bg-gray-800/60 border-2 border-orange-500/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all";
   const labelStyles = "block mb-2 text-lg font-medium text-orange-300";
   const errorStyles = "text-red-400 text-sm mt-1";
 
@@ -151,11 +176,10 @@ function Form() {
       }}
     >
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
-
       <MusicPlayer audioUrl={narutoMusicUrl} />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-        {/* Left Column for GIF */}
+        {/* Left Column for GIF (Unchanged) */}
         <motion.div
           className="hidden lg:flex items-center justify-center p-4"
           initial={{ opacity: 0, x: -100 }}
@@ -183,6 +207,7 @@ function Form() {
 
             <h2 className="font-naruto text-2xl text-orange-400 border-b-2 border-orange-500/30 pb-2 mb-6">Team Leader's Scroll</h2>
 
+            {/* --- JSX: Updated Team Leader section with new fields --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
               <div>
                 <label className={labelStyles} htmlFor="teamname">Team Name / Clan</label>
@@ -205,6 +230,33 @@ function Form() {
                 {errors.registrationNumber && <p className={errorStyles}>{errors.registrationNumber}</p>}
               </div>
               <div>
+                <label className={labelStyles} htmlFor="year">Year</label>
+                <select id="year" name="year" value={formData.year} onChange={handleChange} className={inputStyles}>
+                    <option value="">Select Year</option>
+                    <option value="2">2nd Year</option>
+                    <option value="3">3rd Year</option>
+                    <option value="4">4th Year</option>
+                </select>
+                {errors.year && <p className={errorStyles}>{errors.year}</p>}
+              </div>
+               <div>
+                <label className={labelStyles} htmlFor="department">Department</label>
+                <select id="department" name="department" value={formData.department} onChange={handleChange} className={inputStyles}>
+                    <option value="">Select Department</option>
+                    <option value="CSE">CSE</option>
+                    <option value="IT">IT</option>
+                    <option value="ECE">ECE</option>
+                    <option value="EEE">EEE</option>
+                    <option value="MECH">MECH</option>
+                </select>
+                {errors.department && <p className={errorStyles}>{errors.department}</p>}
+              </div>
+              <div>
+                <label className={labelStyles} htmlFor="section">Section</label>
+                <input id="section" name="section" value={formData.section} onChange={handleChange} placeholder="e.g., A" className={inputStyles} />
+                {errors.section && <p className={errorStyles}>{errors.section}</p>}
+              </div>
+              <div>
                 <label className={labelStyles} htmlFor="type">Type (Hostel/Day)</label>
                 <select id="type" name="type" value={formData.type} onChange={handleChange} className={inputStyles}>
                   <option value="">Select Type</option>
@@ -216,7 +268,6 @@ function Form() {
                 </select>
                 {errors.type && <p className={errorStyles}>{errors.type}</p>}
               </div>
-
               {formData.type !== "Day's Scholar" && (
                 <div>
                   <label className={labelStyles} htmlFor="room">Room Number</label>
@@ -228,6 +279,7 @@ function Form() {
 
             <h2 className="font-naruto text-2xl text-orange-400 border-b-2 border-orange-500/30 pb-2 mb-6 mt-10">Assemble Your Squad</h2>
 
+            {/* --- JSX: Updated Team Members section with new fields --- */}
             {formData.teamMembers.map((member, index) => (
               <div key={index} className="mb-8 p-4 border border-gray-700/50 rounded-lg bg-black/20">
                 <p className="text-xl font-bold text-gray-300 mb-4">Squad Member {index + 1}</p>
@@ -241,6 +293,33 @@ function Form() {
                     <label className={labelStyles} htmlFor={`memberReg${index}`}>Registration No.</label>
                     <input id={`memberReg${index}`} name="registrationNumber" value={member.registrationNumber} onChange={(e) => handleTeamMemberChange(index, e)} placeholder="Member's Ninja ID" className={inputStyles} />
                     {errors[`teamMember${index}RegistrationNumber`] && <p className={errorStyles}>{errors[`teamMember${index}RegistrationNumber`]}</p>}
+                  </div>
+                   <div>
+                    <label className={labelStyles} htmlFor={`memberYear${index}`}>Year</label>
+                    <select id={`memberYear${index}`} name="year" value={member.year} onChange={(e) => handleTeamMemberChange(index, e)} className={inputStyles}>
+                        <option value="">Select Year</option>
+                        <option value="2">2nd Year</option>
+                        <option value="3">3rd Year</option>
+                        <option value="4">4th Year</option>
+                    </select>
+                    {errors[`teamMember${index}Year`] && <p className={errorStyles}>{errors[`teamMember${index}Year`]}</p>}
+                  </div>
+                  <div>
+                    <label className={labelStyles} htmlFor={`memberDepartment${index}`}>Department</label>
+                    <select id={`memberDepartment${index}`} name="department" value={member.department} onChange={(e) => handleTeamMemberChange(index, e)} className={inputStyles}>
+                        <option value="">Select Department</option>
+                        <option value="CSE">CSE</option>
+                        <option value="IT">IT</option>
+                        <option value="ECE">ECE</option>
+                        <option value="EEE">EEE</option>
+                        <option value="MECH">MECH</option>
+                    </select>
+                    {errors[`teamMember${index}Department`] && <p className={errorStyles}>{errors[`teamMember${index}Department`]}</p>}
+                  </div>
+                  <div>
+                    <label className={labelStyles} htmlFor={`memberSection${index}`}>Section</label>
+                    <input id={`memberSection${index}`} name="section" value={member.section} onChange={(e) => handleTeamMemberChange(index, e)} placeholder="e.g., B" className={inputStyles} />
+                    {errors[`teamMember${index}Section`] && <p className={errorStyles}>{errors[`teamMember${index}Section`]}</p>}
                   </div>
                   <div>
                     <label className={labelStyles} htmlFor={`memberType${index}`}>Type</label>

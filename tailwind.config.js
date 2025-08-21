@@ -1,4 +1,9 @@
 export default {
+  // Add this block to disable the modern color format
+  featureFlags: {
+    modernBrowserColorFormat: false,
+  },
+  
   theme: {
     extend: {
       fontFamily: {
@@ -6,5 +11,5 @@ export default {
       },
     },
   },
-  // ...existing code...
+  // ...any other existing code...
 }

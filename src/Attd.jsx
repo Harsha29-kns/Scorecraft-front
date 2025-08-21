@@ -12,28 +12,32 @@ function Attd() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState(sessionStorage.getItem("password") || "");
   const [error, setError] = useState("");
-  const [selectedTeam, setSelectedTeam] = useState(null); // ✅ NEW
+  const [selectedTeam, setSelectedTeam] = useState(null);
   const sectors = ["Naruto", "Sasuke", "Itachi"];
 
   const location = useLocation();
   const params = new URLSearchParams(location.search);
+  // --- UPDATED: We only need the round number now ---
   const round = params.get("round") || "1";
-  const attdField = ["FirstAttd", "SecondAttd", "ThirdAttd", "FourthAttd"][parseInt(round) - 1];
 
   useEffect(() => {
     async function data() {
       try {
         let res = await axios.get(`${api}/event/students`);
-        res = await res.data;
-        setTeams(res);
+        setTeams(res.data); // Directly use res.data
       } catch (error) {
         console.error("Error fetching teams:", error);
       } finally {
         setLoading(false);
       }
     }
-    if (password === "att2025") setIsAuthenticated(true);
-    if (isAuthenticated) data();
+    // You can change the password or move it to an environment variable for better security
+    if (password === "att2025") {
+        setIsAuthenticated(true);
+    }
+    if (isAuthenticated) {
+        data();
+    }
   }, [isAuthenticated]);
 
   const handleLogin = (e) => {
@@ -42,12 +46,20 @@ function Attd() {
       setIsAuthenticated(true);
       sessionStorage.setItem("password", password);
       setError("");
-    } else setError("Incorrect password. Please try again.");
+    } else {
+      setError("Incorrect password. Please try again.");
+    }
   };
 
   const getSectorTeams = (sectorIndex) => {
     const selectedSector = sectors[sectorIndex];
     return teams.filter((team) => team.Sector === selectedSector);
+  };
+
+  const handleLogout = () => {
+      sessionStorage.removeItem("password");
+      setIsAuthenticated(false);
+      setPassword("");
   };
 
   if (!isAuthenticated) {
@@ -130,7 +142,7 @@ function Attd() {
             {selectedTeam ? (
               <AttenCard
                 team={teams.find((t) => t._id === selectedTeam)}
-                attdField={attdField}
+                // --- UPDATED: Pass the round number directly ---
                 round={round}
               />
             ) : (
@@ -140,7 +152,7 @@ function Attd() {
 
           <div className="text-right px-6 pb-6">
             <button
-              onClick={() => setIsAuthenticated(false)}
+              onClick={handleLogout}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-md"
             >
               Logout

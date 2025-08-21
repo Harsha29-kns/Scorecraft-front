@@ -1,24 +1,28 @@
 import axios from "axios";
-import api from "./src/api.js"
+import api from "./src/api.js";
 import { io } from "socket.io-client";
+
 // Configuration
 const config = {
-    apiRequests: 400,  // Number of API requests to send
-    socketEvents: 350, // Number of socket events to emit
+    apiRequests: 400,   // Number of API requests to send
+    socketEvents: 350,  // Number of socket events to emit
     concurrentRequests: 50, // How many concurrent requests
-    logFrequency: 25,  // Log every X requests
+    logFrequency: 25,   // Log every X requests
     socketEndpoint: api,
     apiEndpoints: [
         '/event/students',
     ]
 };
+
 const socket = io(config.socketEndpoint, {
     reconnection: true,
     reconnectionAttempts: 5,
 });
-socket.on("domainSelected",(res)=>{
+
+socket.on("domainSelected", (res) => {
     console.log(res)
 })
+
 console.log('🚀 Starting stress test...');
 console.log(`API Requests: ${config.apiRequests} | Socket Events: ${config.socketEvents}`);
 console.log('----------------------------------------------');
@@ -35,7 +39,6 @@ const metrics = {
     socketFailures: 0,
     apiResponseTimes: [],
 };
-
 
 // Helper functions
 const getRandomEndpoint = () => {
@@ -115,16 +118,22 @@ async function runSocketTest() {
         socket.on('connect', async () => {
             console.log('🔌 Socket connected');
             
-            const events = [                
+            const events = [
                 'domainSelected',
             ];
             
             // Send socket events
             for (let i = 0; i < config.socketEvents; i++) {
                 const event = events[Math.floor(Math.random() * events.length)];
+                
+                // ========== MODIFIED CODE BLOCK START ==========
                 const payload = { 
-                    id: "67b32ce9fb460dd92d9e8706", domain: "1"
+                    // **FIX 1:** Changed 'id' to 'teamId' to match your server code
+                    // **FIX 2:** Used the real _id you provided
+                    teamId: "68a605166d904f07ffae2b6c", 
+                    domain: "1"
                 };
+                // ========== MODIFIED CODE BLOCK END ==========
 
                 
                 try {
