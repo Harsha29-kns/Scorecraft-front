@@ -31,7 +31,7 @@ const customModalStyles = {
         borderRadius: '1rem',
         padding: '2rem',
         maxWidth: '90vw',
-        width: '600px',
+        width: '850px', // Increased width for the new layout
         maxHeight: '90vh',
         color: 'white',
         zIndex: 1001,
@@ -62,11 +62,11 @@ const LeaderboardModal = ({ isOpen, onClose, leaderboard }) => (
         <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
             {leaderboard && leaderboard.length > 0 ? leaderboard.map((item, index) => (
                 <div key={index}
-                    className={`p-3 rounded-xl transition-all duration-300 flex items-center justify-between text-black ${
-                        index === 0 ? 'bg-gradient-to-r from-yellow-400 to-amber-500' :
-                        index === 1 ? 'bg-gradient-to-r from-gray-300 to-gray-400' :
-                        index === 2 ? 'bg-gradient-to-r from-orange-400 to-amber-600' :
-                        'bg-gray-600 text-white'}`}
+                     className={`p-3 rounded-xl transition-all duration-300 flex items-center justify-between text-black ${
+                         index === 0 ? 'bg-gradient-to-r from-yellow-400 to-amber-500' :
+                         index === 1 ? 'bg-gradient-to-r from-gray-300 to-gray-400' :
+                         index === 2 ? 'bg-gradient-to-r from-orange-400 to-amber-600' :
+                         'bg-gray-600 text-white'}`}
                 >
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold bg-white/30">
@@ -86,7 +86,6 @@ const LeaderboardModal = ({ isOpen, onClose, leaderboard }) => (
 );
 
 const AttendanceModal = ({ isOpen, onClose, team, attendanceClass, attendanceIcon }) => {
-    // --- NEW: Helper function to get status from the new data structure ---
     const getAttendanceStatus = (member, round) => {
         if (!member || !member.attendance || !Array.isArray(member.attendance)) {
             return null;
@@ -99,7 +98,7 @@ const AttendanceModal = ({ isOpen, onClose, team, attendanceClass, attendanceIco
         <Modal
             isOpen={isOpen}
             onRequestClose={onClose}
-            style={{ ...customModalStyles, width: '800px', maxWidth: '95vw' }} // Wider modal for table
+            style={{ ...customModalStyles, width: '800px', maxWidth: '95vw' }}
             contentLabel="Attendance Tracker"
             appElement={document.getElementById('root') || undefined}
         >
@@ -176,6 +175,66 @@ const ReminderModal = ({ isOpen, onClose, reminderText }) => (
     </Modal>
 );
 
+const AssistanceModal = ({ isOpen, onClose, isSubmittingIssue, issueError, issueText, setIssueText, handleIssueSubmit }) => (
+    <Modal
+        isOpen={isOpen}
+        onRequestClose={onClose}
+        style={customModalStyles}
+        contentLabel="Request Assistance"
+        appElement={document.getElementById('root') || undefined}
+    >
+        <div className="text-white">
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-orange-400 font-naruto">Request Assistance</h2>
+                <button
+                    onClick={onClose}
+                    className="text-gray-400 hover:text-white transition-colors text-3xl font-light"
+                    disabled={isSubmittingIssue}
+                >
+                    ×
+                </button>
+            </div>
+            {issueError && (
+                <div className="bg-red-900/50 text-red-300 p-3 rounded-lg mb-4 text-center">
+                    {issueError}
+                </div>
+            )}
+            <p className="text-gray-300 mb-4">
+                If you have a technical problem or need help, please describe it below. Our team will reach you shortly.
+            </p>
+            <textarea
+                value={issueText}
+                onChange={(e) => setIssueText(e.target.value)}
+                placeholder="Describe your problem here..."
+                className="w-full h-40 p-4 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-500"
+                disabled={isSubmittingIssue}
+            />
+            <div className="mt-6 flex justify-end gap-4">
+                <button
+                    onClick={onClose}
+                    className="px-6 py-2 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
+                    disabled={isSubmittingIssue}
+                >
+                    Cancel
+                </button>
+                <button
+                    onClick={handleIssueSubmit}
+                    className="px-6 py-2 rounded-lg bg-orange-600 text-white hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    disabled={isSubmittingIssue || !issueText.trim()}
+                >
+                    {isSubmittingIssue ? (
+                        <>
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Submitting...
+                        </>
+                    ) : (
+                        "Submit Request"
+                    )}
+                </button>
+            </div>
+        </div>
+    </Modal>
+);
 
 function TeamPanel() {
     const [pass, setPass] = useState(localStorage.getItem("token") || "");
@@ -228,7 +287,33 @@ function TeamPanel() {
     const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
     const [activeReminder, setActiveReminder] = useState("");
     const [reminders, setReminders] = useState([]);
-    const [currentTime, setCurrentTime] = useState(new Date()); // This is crucial for the new tracker
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    // --- State for PPT Template ---
+    const [pptData, setPptData] = useState(null);
+
+    // --- NEW: Fetch existing reminders and PPT data on component load ---
+    useEffect(() => {
+        // This listener waits for the server to send the stored data
+        socket.on("server:loadData", (data) => {
+            if (data.reminders) {
+                // The time will be a string, so convert it back to a Date object for consistency
+                const formattedReminders = data.reminders.map(r => ({ ...r, time: new Date(r.time) }));
+                setReminders(formattedReminders);
+            }
+            if (data.ppt) {
+                setPptData(data.ppt);
+            }
+        });
+
+        // Proactively ask the server for the data
+        socket.emit("client:getData");
+
+        // Cleanup: remove the listener when the component is unmounted
+        return () => {
+            socket.off("server:loadData");
+        };
+    }, []); // Empty dependency array means this effect runs only once on mount
 
     const handleDomainSelect = (domainId) => {
         setSelectedDomain(domainId);
@@ -377,11 +462,11 @@ function TeamPanel() {
             setCurrentTime(new Date());
         }, 1000);
 
-        socket.on("client:newReminder", (data) => {
+        socket.on("admin:sendReminder", (data) => {
             if (data && data.message) {
                 setActiveReminder(data.message);
                 setIsReminderModalOpen(true);
-                setReminders(prev => [...prev, { text: data.message, time: new Date() }]);
+                setReminders(prev => [...prev, { text: data.message, time: new Date(data.time) }]);
             }
         });
 
@@ -403,6 +488,20 @@ function TeamPanel() {
             }
         });
 
+        socket.on("client:receivePPT", (data) => {
+            if (data && data.url) {
+                setPptData(data);
+                try {
+                    new Notification("New Presentation Template!", {
+                        body: `The organizers have sent a new template: ${data.fileName}`,
+                        icon: scorecraft
+                    });
+                } catch (err) {
+                    console.log("Notifications not supported or permission denied.");
+                }
+            }
+        });
+
         socket.on("domainSelected", (data) => {
             if (data === "fulled") {
                 alert("Sorry, that domain is full. Please try again.");
@@ -411,10 +510,17 @@ function TeamPanel() {
             setIsDomainModalOpen(false);
             if (pass) {
                 setLoading(true);
-                axios.get(`${api}/event/students/${pass}`).then((res) => {
-                    setLoading(false);
-                    setTeam(res.data);
-                });
+                axios.post(`${api}/event/team/${pass}`)
+            .then((res) => {
+                setTeam(res.data);
+            })
+            .catch((err) => {
+                console.error("Failed to refetch team data:", err);
+                setError("Could not refresh team data. Please reload the page.");
+            })
+            .finally(() => {
+                setLoading(false);
+            });
             }
         });
         
@@ -471,16 +577,17 @@ function TeamPanel() {
 
         return () => {
             clearInterval(timeUpdater);
-            socket.off("client:newReminder");
+            socket.off("admin:sendReminder");
             socket.off("eventupdates");
             socket.off("domainSelected");
             socket.off("team");
             socket.off("domainStat");
             socket.off("domaindata");
             socket.off("leaderboard");
+            socket.off("client:receivePPT");
         };
     }, [pass]);
-
+    
     useEffect(() => {
         if (team) {
             socket.emit("join", team.teamname);
@@ -683,72 +790,13 @@ function TeamPanel() {
             </div>
         );
     }
-
-    const AssistanceModal = () => (
-        <Modal
-            isOpen={isAssistanceModalOpen}
-            onRequestClose={() => setIsAssistanceModalOpen(false)}
-            style={customModalStyles}
-            contentLabel="Request Assistance"
-        >
-            <div className="text-white">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-orange-400 font-naruto">Request Assistance</h2>
-                    <button
-                        onClick={() => setIsAssistanceModalOpen(false)}
-                        className="text-gray-400 hover:text-white transition-colors text-3xl font-light"
-                        disabled={isSubmittingIssue}
-                    >
-                        ×
-                    </button>
-                </div>
-                {issueError && (
-                    <div className="bg-red-900/50 text-red-300 p-3 rounded-lg mb-4 text-center">
-                        {issueError}
-                    </div>
-                )}
-                <p className="text-gray-300 mb-4">
-                    If you have a technical problem or need help, please describe it below. Our team will reach you shortly.
-                </p>
-                <textarea
-                    value={issueText}
-                    onChange={(e) => setIssueText(e.target.value)}
-                    placeholder="Describe your problem here..."
-                    className="w-full h-40 p-4 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-500"
-                    disabled={isSubmittingIssue}
-                />
-                <div className="mt-6 flex justify-end gap-4">
-                    <button
-                        onClick={() => setIsAssistanceModalOpen(false)}
-                        className="px-6 py-2 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
-                        disabled={isSubmittingIssue}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleIssueSubmit}
-                        className="px-6 py-2 rounded-lg bg-orange-600 text-white hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                        disabled={isSubmittingIssue || !issueText.trim()}
-                    >
-                        {isSubmittingIssue ? (
-                            <>
-                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                Submitting...
-                            </>
-                        ) : (
-                            "Submit Request"
-                        )}
-                    </button>
-                </div>
-            </div>
-        </Modal>
-    );
-
+    
+    // --- UPDATED MODAL ---
     const DomainSelectionModal = () => (
         <Modal
             isOpen={isDomainModalOpen}
             onRequestClose={() => setIsDomainModalOpen(false)}
-            style={customModalStyles}
+            style={customModalStyles} // The width is now updated in the style object
             contentLabel="Domain Selection"
         >
             <div className="text-white">
@@ -761,45 +809,52 @@ function TeamPanel() {
                         ✕
                     </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {DomainData.map((domain) => {
-                        if (domain.slots === 0) {
+
+                {/* New container for side-by-side layout */}
+                <div className="flex gap-6">
+                    {/* Scrollable grid for domains */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow max-h-[60vh] overflow-y-auto pr-4">
+                        {DomainData.map((domain) => {
+                            if (domain.slots === 0) {
+                                return (
+                                    <div key={domain.id} className="cursor-not-allowed p-4 rounded-xl bg-red-900/50 border-2 border-red-700">
+                                        <p className="text-xl text-red-300">Slots Filled</p>
+                                        <p className="text-gray-400">{domain.name}</p>
+                                    </div>
+                                );
+                            }
                             return (
-                                <div key={domain.id} className="cursor-not-allowed p-4 rounded-xl bg-red-900/50 border-2 border-red-700">
-                                    <p className="text-xl text-red-300">Slots Filled</p>
-                                    <p className="text-gray-400">{domain.name}</p>
+                                <div
+                                    key={domain.id}
+                                    onClick={() => handleDomainSelect(domain.id)}
+                                    className={`cursor-pointer p-4 rounded-xl transition-all duration-300 border-2 ${domain.id === selectedDomain
+                                            ? 'bg-orange-600 text-white border-orange-400'
+                                            : 'bg-gray-800 hover:bg-gray-700 border-gray-600'
+                                        }`}
+                                >
+                                    <h3 className="text-xl font-bold mb-2">{domain.name} ({domain.slots}/10)</h3>
+                                    <p className="text-sm opacity-80 line-clamp-3">{domain.description}</p>
                                 </div>
                             );
-                        }
-                        return (
-                            <div
-                                key={domain.id}
-                                onClick={() => handleDomainSelect(domain.id)}
-                                className={`cursor-pointer p-4 rounded-xl transition-all duration-300 border-2 ${domain.id === selectedDomain
-                                    ? 'bg-orange-600 text-white border-orange-400'
-                                    : 'bg-gray-800 hover:bg-gray-700 border-gray-600'
-                                    }`}
-                            >
-                                <h3 className="text-xl font-bold mb-2">{domain.name} ({domain.slots}/10)</h3>
-                                <p className="text-sm opacity-80 line-clamp-3">{domain.description}</p>
-                            </div>
-                        );
-                    })}
-                </div>
-                <div className="mt-6 flex justify-end gap-4">
-                    <button
-                        onClick={() => setIsDomainModalOpen(false)}
-                        className="px-6 py-2 rounded-full border border-gray-600 hover:bg-gray-700 transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleDomain}
-                        className="px-6 py-2 rounded-full bg-orange-600 text-white hover:bg-orange-700 transition-colors disabled:opacity-50"
-                        disabled={!selectedDomain || DomainLoading}
-                    >
-                        {DomainLoading ? "Submitting..." : "Confirm Selection"}
-                    </button>
+                        })}
+                    </div>
+
+                    {/* Buttons on the right side */}
+                    <div className="flex flex-col gap-4 w-48 shrink-0">
+                        <button
+                            onClick={handleDomain}
+                            className="w-full px-6 py-3 rounded-lg bg-orange-600 text-white hover:bg-orange-700 transition-colors disabled:opacity-50"
+                            disabled={!selectedDomain || DomainLoading}
+                        >
+                            {DomainLoading ? "Submitting..." : "Confirm Selection"}
+                        </button>
+                        <button
+                            onClick={() => setIsDomainModalOpen(false)}
+                            className="w-full px-6 py-3 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                    </div>
                 </div>
             </div>
         </Modal>
@@ -933,7 +988,7 @@ function TeamPanel() {
         <div id="domain-selection" className="w-full lg:w-1/2 flex flex-col gap-4">
             <div className="rounded-2xl h-96 bg-gray-800 flex items-center justify-center overflow-hidden">
                 <video 
-                    src="https://cdnl.iconscout.com/lottie/premium/preview-watermark/domain-search-5351938-4475851.mp4" 
+                    src="./CreativeTeam.mp4" 
                     autoPlay 
                     loop 
                     muted 
@@ -982,9 +1037,7 @@ function TeamPanel() {
         </div>
     );
 
-    // --- NEW: Event Tracker Component ---
     const EventTracker = () => {
-        // Define the key milestones of your event here
         const eventMilestones = [
             { name: 'Domain Selection', time: '2025-08-20T10:00:00' },
             { name: 'Lunch Break', time: '2025-08-20T12:30:00' },
@@ -994,7 +1047,6 @@ function TeamPanel() {
             { name: 'Final Presentation', time: '2025-08-21T09:00:00' },
         ];
 
-        // Find the index of the last event that has already passed
         const lastCompletedIndex = eventMilestones.slice().reverse().findIndex(event => new Date(event.time) < currentTime);
         const currentStageIndex = lastCompletedIndex !== -1 ? eventMilestones.length - 1 - lastCompletedIndex : -1;
     
@@ -1008,10 +1060,9 @@ function TeamPanel() {
                     {eventMilestones.map((event, index) => {
                         const isCompleted = index <= currentStageIndex;
                         const isActive = index === currentStageIndex + 1;
-    
+        
                         return (
                             <React.Fragment key={index}>
-                                {/* Node and Event Info */}
                                 <div className="flex flex-col items-center text-center w-full md:w-auto">
                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center border-4 transition-all duration-500 ${
                                         isCompleted ? 'bg-green-500 border-green-700' : 
@@ -1027,8 +1078,7 @@ function TeamPanel() {
                                         </p>
                                     </div>
                                 </div>
-    
-                                {/* Connector Line (not for the last item) */}
+        
                                 {index < eventMilestones.length - 1 && (
                                     <div className={`flex-1 h-1.5 w-full md:w-auto mt-[-2rem] md:mt-0 md:mb-12 rounded-full transition-all duration-500 ${isCompleted ? 'bg-green-500' : 'bg-gray-600'}`}></div>
                                 )}
@@ -1049,7 +1099,15 @@ function TeamPanel() {
             {/* Render Modals at the top level */}
             {team && <AttendanceModal isOpen={isAttendanceModalOpen} onClose={() => setIsAttendanceModalOpen(false)} team={team} attendanceClass={attendanceClass} attendanceIcon={attendanceIcon} />}
             <LeaderboardModal isOpen={isLeaderboardModalOpen} onClose={() => setIsLeaderboardModalOpen(false)} leaderboard={leaderboard} />
-            <AssistanceModal />
+            <AssistanceModal
+                isOpen={isAssistanceModalOpen}
+                onClose={() => setIsAssistanceModalOpen(false)}
+                isSubmittingIssue={isSubmittingIssue}
+                issueError={issueError}
+                issueText={issueText}
+                setIssueText={setIssueText}
+                handleIssueSubmit={handleIssueSubmit}
+            />
             <DomainSelectionModal />
             <ReminderModal isOpen={isReminderModalOpen} onClose={() => setIsReminderModalOpen(false)} reminderText={activeReminder} />
 
@@ -1171,8 +1229,15 @@ function TeamPanel() {
                                                             </span>
                                                         </div>
                                                         <p className="text-gray-500 text-xs mt-2 text-right">
-                                                            {new Date(issue.createdAt).toLocaleString()}
-                                                        </p>
+    {
+        // First, check if issue.createdAt exists and results in a valid date
+        issue.timestamp && !isNaN(new Date(issue.timestamp))
+            // If it's valid, format it
+            ? new Date(issue.timestamp).toLocaleString()
+            // Otherwise, show a clean fallback
+            : '—'
+    }
+</p>
                                                     </div>
                                                 ))
                                             ) : (
@@ -1205,10 +1270,35 @@ function TeamPanel() {
                                             )}
                                         </div>
                                     </div>
+
+                                    {/* --- PPT Template Section --- */}
+                                    <div className="bg-gray-800/70 rounded-2xl p-4 md:p-6 border border-purple-500/30">
+                                        <div className="flex justify-center items-center w-full mb-4">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                            <h2 className="text-xl md:text-2xl text-center font-bold font-naruto text-purple-400">
+                                                PRESENTATION TEMPLATE
+                                            </h2>
+                                        </div>
+                                        <div className="text-center">
+                                            {pptData ? (
+                                                <a
+                                                    href={pptData.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    download
+                                                    className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                                                >
+                                                    Download "{pptData.fileName}"
+                                                </a>
+                                            ) : (
+                                                <p className="text-gray-400 py-4">No template has been shared yet.</p>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* --- NEW: Event Tracker Section --- */}
+                            {/* --- Event Tracker Section --- */}
                             <div className="w-full mt-10">
                                 <EventTracker />
                             </div>
@@ -1272,26 +1362,6 @@ function TeamPanel() {
                                 </div>
                             )}
 
-                            <div id="event-updates" className="w-full mt-10">
-                                <div className="h-full rounded-lg p-4 md:p-6 shadow-lg bg-gray-800/60 backdrop-blur-2xl border border-orange-500/30">
-                                    <div className="flex justify-center items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                        </svg>
-                                        <h2 className="text-xl md:text-2xl text-center mb-4 text-white font-bold font-naruto text-orange-400">
-                                            EVENT UPDATES
-                                            {hasNewUpdate && (
-                                                <span className="inline-block ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">
-                                                    New!
-                                                </span>
-                                            )}
-                                        </h2>
-                                    </div>
-                                    <div className="h-full md:h-full overflow-y-auto rounded-lg p-4 bg-gray-900/50">
-                                        <div className="htmlcon prose prose-invert max-w-none"></div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     ) : (
                         <p className="text-center text-xl mt-10">Failed to load team data. Please try again later.</p>
