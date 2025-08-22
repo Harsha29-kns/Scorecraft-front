@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import axios from 'axios'; // --- NEW: Import axios
+import api from './api'; // --- NEW: Import your api config
 
-// --- Constants (assuming these are defined elsewhere or are fine as is) ---
+// --- Constants ---
 const narutoBgImage = "https://images6.alphacoders.com/605/605598.jpg";
 const narutoGifUrl = "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMHpqeHMwY3dyYmt1amF0MDF0NzNjY2R5M2Jha21rMHRnNWN6OGVhZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xVxio2tNLAM5q/giphy.gif";
-const narutoMusicUrl = "/music/naruto-reg.mp3"; // Ensure this path is correct in your public folder
+const narutoMusicUrl = "/music/naruto-reg.mp3";
 
 // --- MusicPlayer Component (Unchanged) ---
 const MusicPlayer = ({ audioUrl }) => {
@@ -58,7 +60,6 @@ const MusicPlayer = ({ audioUrl }) => {
 
 // --- Main Form Component ---
 function Form() {
-  // --- STATE: Added year, department, and section fields ---
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -81,20 +82,36 @@ function Form() {
   });
   const [errors, setErrors] = useState({});
   const nav = useNavigate();
+  
+  // --- NEW: State for registration capacity ---
+  const [isClosed, setIsClosed] = useState(false);
 
-  // --- Effects for localStorage (Unchanged) ---
   useEffect(() => {
     const savedData = localStorage.getItem('formData');
     if (savedData) {
       setFormData(JSON.parse(savedData));
     }
+
+    // --- NEW: Fetch team count on component mount ---
+    const checkRegistrationStatus = async () => {
+        try {
+            const response = await axios.get(`${api}/event/teams/count`);
+            if (response.data.count >= 60) {
+                setIsClosed(true);
+            }
+        } catch (error) {
+            console.error("Failed to fetch team count:", error);
+            // Optionally handle the error, e.g., show a message
+        }
+    };
+    checkRegistrationStatus();
+
   }, []);
 
   useEffect(() => {
     localStorage.setItem('formData', JSON.stringify(formData));
   }, [formData]);
 
-  // --- Handlers (Unchanged, they are generic and will work with new fields) ---
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === 'type' && value === "Day's Scholar") {
@@ -114,10 +131,8 @@ function Form() {
     setFormData({ ...formData, teamMembers: updatedTeamMembers });
   };
 
-  // --- VALIDATION: Updated to include new fields ---
   const validate = () => {
     const newErrors = {};
-    // Lead validation
     if (!formData.name) newErrors.name = 'Name is required';
     if (!formData.email) newErrors.email = 'Email is required';
     if (!formData.registrationNumber) newErrors.registrationNumber = 'Registration Number is required';
@@ -131,7 +146,6 @@ function Form() {
       newErrors.room = 'Room Number is required';
     }
 
-    // Team members validation
     formData.teamMembers.forEach((member, index) => {
       if (!member.name) newErrors[`teamMember${index}Name`] = `Member ${index + 1} Name is required`;
       if (!member.registrationNumber) newErrors[`teamMember${index}RegistrationNumber`] = `Member ${index + 1} Reg No is required`;
@@ -160,10 +174,36 @@ function Form() {
     }
   };
 
-  // --- Styles (Unchanged) ---
   const inputStyles = "w-full h-12 rounded-lg p-3 bg-gray-800/60 border-2 border-orange-500/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all";
   const labelStyles = "block mb-2 text-lg font-medium text-orange-300";
   const errorStyles = "text-red-400 text-sm mt-1";
+
+  // --- NEW: Conditional rendering for closed state ---
+  if (isClosed) {
+    return (
+        <div 
+            className="home relative w-full min-h-screen p-4 sm:p-8 flex items-center justify-center text-center"
+            style={{ backgroundImage: `url('${narutoBgImage}')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}
+        >
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+            <MusicPlayer audioUrl={narutoMusicUrl} />
+            <motion.div 
+                className="relative z-10 text-white bg-gray-900/80 border-2 border-orange-500/50 rounded-2xl shadow-2xl p-8 max-w-lg w-full"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+            >
+                <h1 className="text-4xl font-naruto text-orange-400">Registrations Are Closed</h1>
+                <p className="mt-4 text-lg text-gray-300">
+                    The 60-team capacity has been reached. Thank you for your interest!
+                </p>
+                <p className="mt-2 text-gray-400">
+                    If you believe this is a mistake, please contact the event organizers.
+                </p>
+            </motion.div>
+        </div>
+    );
+  }
 
   return (
     <div
@@ -179,7 +219,6 @@ function Form() {
       <MusicPlayer audioUrl={narutoMusicUrl} />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-        {/* Left Column for GIF (Unchanged) */}
         <motion.div
           className="hidden lg:flex items-center justify-center p-4"
           initial={{ opacity: 0, x: -100 }}
@@ -189,7 +228,6 @@ function Form() {
           <img src={narutoGifUrl} alt="Naruto Animation" className="rounded-2xl shadow-2xl border-4 border-orange-500/50 max-w-sm w-full" />
         </motion.div>
 
-        {/* Right Column for Form */}
         <motion.div
           className="w-full"
           initial={{ opacity: 0, y: 50 }}
@@ -207,7 +245,6 @@ function Form() {
 
             <h2 className="font-naruto text-2xl text-orange-400 border-b-2 border-orange-500/30 pb-2 mb-6">Team Leader's Scroll</h2>
 
-            {/* --- JSX: Updated Team Leader section with new fields --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
               <div>
                 <label className={labelStyles} htmlFor="teamname">Team Name / Clan</label>
@@ -279,7 +316,6 @@ function Form() {
 
             <h2 className="font-naruto text-2xl text-orange-400 border-b-2 border-orange-500/30 pb-2 mb-6 mt-10">Assemble Your Squad</h2>
 
-            {/* --- JSX: Updated Team Members section with new fields --- */}
             {formData.teamMembers.map((member, index) => (
               <div key={index} className="mb-8 p-4 border border-gray-700/50 rounded-lg bg-black/20">
                 <p className="text-xl font-bold text-gray-300 mb-4">Squad Member {index + 1}</p>

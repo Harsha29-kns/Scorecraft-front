@@ -12,14 +12,11 @@ import { io } from "socket.io-client";
 const narutoBgImage = "https://images6.alphacoders.com/605/605598.jpg";
 const narutoMusicUrl = "https://vgmsite.com/soundtracks/naruto-shippuden-ultimate-ninja-storm-4/xvyyfppc/1-01.%20Spiral%20of%20Fire.mp3";
 
-// An array of your QR codes and their corresponding UPI IDs
 const paymentOptions = [
     { qrCode: qr, upiId: "check1@okhdfcbank" },
     { qrCode: anotherQr, upiId: "check2@okaxis" },
 ];
 
-
-// Music Player Component for consistent theme
 const MusicPlayer = ({ audioUrl }) => {
     const [isPlaying, setIsPlaying] = useState(true);
     const audioRef = useRef(null);
@@ -63,7 +60,6 @@ const MusicPlayer = ({ audioUrl }) => {
     );
 };
 
-// --- THIS IS THE CORRECTED LOADER COMPONENT ---
 const NarutoLoader = () => (
     <div className="flex flex-col items-center justify-center text-center">
         <img 
@@ -75,8 +71,6 @@ const NarutoLoader = () => (
     </div>
 );
 
-
-// Naruto Themed Payment Page
 function Payment() {
     const location = useLocation();
     const data = location.state || JSON.parse(localStorage.getItem('paymentData')) || { teamMembers: [] };
@@ -119,13 +113,16 @@ function Payment() {
         }
 
         socketRef.current = io(api);
-        socketRef.current.on("check", (res) => {
-            if (res === "stop") setClose(true);
+        
+        // --- THIS LISTENER HANDLES THE REAL-TIME CLOSING ---
+        socketRef.current.on("registrationStatus", (status) => {
+            if (status === "stop") {
+                setClose(true);
+            }
         });
+        
+        // Emit an event to check the status when the page loads
         socketRef.current.emit("check");
-        socketRef.current.on("see", (res) => {
-            if (res === "stop") setClose(true);
-        });
 
         return () => {
             socketRef.current.disconnect();
@@ -173,7 +170,12 @@ function Payment() {
                 .catch((err) => {
                      setTimeout(() => {
                         setLoading(false);
-                        setError("Registration failed! The server might be down or your team is already registered. Please contact support.");
+                        // --- UPDATED: Show specific error if registration is full ---
+                        if (err.response && err.response.status === 403) {
+                             setClose(true); // Trigger the closed view
+                        } else {
+                            setError("Registration failed! The server might be down or your team is already registered. Please contact support.");
+                        }
                     }, 2000);
                 });
         }
@@ -195,13 +197,16 @@ function Payment() {
     const labelStyles = "block mb-2 text-lg font-medium text-orange-300";
     const errorStyles = "text-red-400 text-sm mt-1";
 
+    // --- UPDATED: The message displayed when registrations are full ---
     if (close) {
         return (
             <div className="bg-black w-full h-screen text-white text-xl flex flex-col justify-center items-center text-center p-4">
-                <h1 className="text-3xl font-bold">Registrations Are Now Closed!</h1>
-                <p className="mt-4">If you have already completed the payment, please fill out the form below to finalize your registration.</p>
-                <a href="https://forms.gle/4WoCQPbTNo91zYMR9" className="mt-6 text-orange-400 text-2xl underline hover:text-orange-500" target="_blank" rel="noopener noreferrer">
-                    Finalize Payment Form
+                <h1 className="text-3xl font-bold text-orange-400">Registrations Are Now Full!</h1>
+                <p className="mt-4 max-w-2xl">
+                    The 60-team limit has been reached. If you have already completed the payment, please contact the Scorecraft team to finalize your registration.
+                </p>
+                <a href="mailto:support@scorecraft.com" className="mt-6 text-orange-400 text-2xl underline hover:text-orange-500">
+                    Contact Scorecraft Team
                 </a>
             </div>
         );
@@ -315,11 +320,10 @@ function Payment() {
                 </form>
             </motion.div>
 
-{(loading || isDone || error) && (
+        {(loading || isDone || error) && (
                 <Modal>
                     {loading && <NarutoLoader />}
                     
-                    {/* --- NEW STYLED SUCCESS MESSAGE --- */}
                     {isDone && (
                         <motion.div 
                             className="text-center text-white bg-gray-900/80 border-2 border-orange-500/50 rounded-2xl shadow-2xl p-8 max-w-lg w-full"
@@ -336,7 +340,6 @@ function Payment() {
                         </motion.div>
                     )}
 
-                    {/* --- NEW STYLED ERROR MESSAGE --- */}
                     {error && (
                          <motion.div 
                             className="text-center text-white bg-gray-900/80 border-2 border-red-500/50 rounded-2xl shadow-2xl p-8 max-w-lg w-full"

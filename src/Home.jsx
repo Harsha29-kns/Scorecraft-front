@@ -1,19 +1,64 @@
-import { motion } from 'framer-motion';
+import { motion, animate } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import kalasalingam from "/public/kalasalingam.png";
 import score from "/public/scorecraft.jpg";
-
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import api from './api';
+import { io } from 'socket.io-client';
 
 const narutoBgImage = "https://images.alphacoders.com/605/605592.png";
 
-// Custom style for the Naruto font
 const narutoFontStyle = {
     fontFamily: "'Ninja Naruto', sans-serif",
 };
 
+// --- NEW: Helper component for animating the team count number ---
+function AnimatedCounter({ to }) {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    const controls = animate(0, to, {
+      duration: 1.5,
+      ease: "easeOut",
+      onUpdate: (latest) => {
+        setDisplayValue(Math.round(latest));
+      },
+    });
+    // Cleanup function to stop the animation if the component unmounts
+    return () => controls.stop();
+  }, [to]); // Rerun animation if the `to` value changes
+
+  return <span>{displayValue}</span>;
+}
+
+
 function Home() {
     const nav = useNavigate();
-    const registrationsAreOpen = true; // Control registration status easily
+    const [teamCount, setTeamCount] = useState(null);
+
+    useEffect(() => {
+        const fetchTeamCount = async () => {
+            try {
+                const response = await axios.get(`${api}/event/teams/count`);
+                setTeamCount(response.data.count);
+            } catch (error) {
+                console.error("Failed to fetch team count:", error);
+            }
+        };
+        fetchTeamCount();
+
+        const socket = io(api);
+        socket.on('updateTeamCount', (newCount) => {
+            setTeamCount(newCount);
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, []);
+
+    const registrationsAreOpen = teamCount !== null && teamCount < 60;
 
     return (
         <div 
@@ -22,20 +67,17 @@ function Home() {
                 backgroundImage: `url('${narutoBgImage}')`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                backgroundAttachment: 'fixed', // Creates a cool parallax effect
+                backgroundAttachment: 'fixed',
             }}
         >
-            {/* Overlay to darken the background slightly, improving text readability */}
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
 
-            {/* Main content container */}
             <motion.div 
                 className="relative z-10 flex flex-col justify-start items-center w-full gap-12"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 1 }}
             >
-                {/* Hero Card */}
                 <motion.div 
                     className="p-8 rounded-2xl bg-gray-900/70 border-2 border-orange-500/50 shadow-2xl max-w-3xl w-full text-center backdrop-blur-md"
                     initial={{ y: -50, opacity: 0 }}
@@ -54,8 +96,38 @@ function Home() {
                         HackForge
                     </h1>
 
+                    {/* --- NEW & IMPROVED: Registration Status UI --- */}
+                    <div className="mt-8 w-full max-w-md mx-auto">
+                        <div className="text-center mb-4">
+                            <h3 className="text-2xl text-orange-400" style={narutoFontStyle}>Available Squad Slots</h3>
+                        </div>
+                        <div className="relative pt-1">
+                            <div className="flex mb-2 items-center justify-between text-gray-300">
+                                <div>
+                                    <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full bg-orange-500 text-white">
+                                        {teamCount !== null ? `${Math.round((teamCount / 60) * 100)}% Full` : 'Loading...'}
+                                    </span>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-lg font-bold text-white">
+                                        {teamCount !== null ? <AnimatedCounter to={teamCount} /> : '...'} / 60
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="overflow-hidden h-4 text-xs flex rounded-full bg-gray-700 border-2 border-gray-600">
+                                <motion.div 
+                                    className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-orange-400 to-orange-600"
+                                    initial={{ width: '0%' }}
+                                    animate={{ width: teamCount !== null ? `${(teamCount / 60) * 100}%` : '0%' }}
+                                    transition={{ duration: 1.5, ease: "easeInOut" }}
+                                >
+                                </motion.div>
+                            </div>
+                        </div>
+                    </div>
+
                     <motion.button 
-                        className="mt-4 bg-orange-500 text-white border-2 border-orange-600 py-3 px-8 rounded-lg shadow-lg text-lg font-bold hover:bg-orange-600 hover:shadow-orange-400/50 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="mt-10 bg-orange-500 text-white border-2 border-orange-600 py-3 px-8 rounded-lg shadow-lg text-lg font-bold hover:bg-orange-600 hover:shadow-orange-400/50 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                         whileHover={{ scale: registrationsAreOpen ? 1.1 : 1, y: -5 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => nav("/registration")}
@@ -65,7 +137,6 @@ function Home() {
                     </motion.button>
                 </motion.div>
 
-                {/* About the Event Section */}
                 <motion.div 
                     className="max-w-4xl p-8 bg-gray-900/70 text-white rounded-2xl shadow-xl border-2 border-orange-500/30 backdrop-blur-md"
                     initial={{ opacity: 0 }}
@@ -91,7 +162,6 @@ function Home() {
                     </div>
                 </motion.div>
 
-                {/* Prizes Section */}
                 <motion.div 
                     className="mt-4 max-w-4xl p-8 bg-gray-900/70 text-white rounded-2xl shadow-xl border-2 border-orange-500/30 backdrop-blur-md"
                     initial={{ opacity: 0 }}
