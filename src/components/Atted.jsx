@@ -3,7 +3,7 @@ import axios from "axios";
 import api from "../api";
 import QrScannerModal from "./QrScanner";
 
-// --- NEW: MemberRow Component for a cleaner layout ---
+// --- MemberRow Component ---
 const MemberRow = ({ member, status, onScan, onToggle, isDisabled }) => {
     const isPresent = status === "Present";
     const isAbsent = status === "Absent";
@@ -25,7 +25,6 @@ const MemberRow = ({ member, status, onScan, onToggle, isDisabled }) => {
                     className="h-12 w-12 flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title={`Scan QR for ${member.name}`}
                 >
-                    {/* --- UPDATED SVG ICON --- */}
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4L12 4C12.5523 4 13 4.44772 13 5L13 5.01C13 5.56228 12.5523 6.01 12 6.01L12 6.01C11.4477 6.01 11 5.56228 11 5.01L11 5C11 4.44772 11.4477 4 12 4zM5 4h1a1 1 0 011 1v1a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1zm13 0h1a1 1 0 011 1v1a1 1 0 01-1 1h-1a1 1 0 01-1-1V5a1 1 0 011-1zm-13 13h1a1 1 0 011 1v1a1 1 0 01-1 1H5a1 1 0 01-1-1v-1a1 1 0 011-1z" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12v4h4v-4H9zM9 4v4h4V4H9zm10 10v4h4v-4h-4zM4 12v4h4v-4H4zm15-8v4h4V4h-4z" />
@@ -164,7 +163,6 @@ function AttenCard({ team, round }) {
     }
   };
 
-  // --- NEW: Mark All as Present ---
   const markAllPresent = () => {
     const newAttendance = {};
     newAttendance[team.registrationNumber] = "Present";
@@ -185,6 +183,12 @@ function AttenCard({ team, round }) {
           onClose={() => {
               setIsScannerOpen(false);
               setMemberToScan(null);
+          }}
+          // --- THIS IS THE NEW PROP ---
+          // This tells the browser to prefer the rear-facing (environment) camera.
+          constraints={{
+            audio: false,
+            video: { facingMode: "environment" },
           }}
         />
       )}

@@ -1,7 +1,8 @@
 import React from 'react';
 import QrScanner from 'react-qr-scanner';
 
-const QrScannerModal = ({ onScan, onClose, onError }) => {
+// 1. Accept `constraints` in the component's props
+const QrScannerModal = ({ onScan, onClose, onError, constraints }) => {
   const previewStyle = {
     height: 'auto',
     width: '100%',
@@ -20,6 +21,8 @@ const QrScannerModal = ({ onScan, onClose, onError }) => {
             style={previewStyle}
             onError={onError}
             onScan={onScan}
+            // 2. Pass the constraints prop to the scanner library
+            constraints={constraints}
           />
         </div>
         <button

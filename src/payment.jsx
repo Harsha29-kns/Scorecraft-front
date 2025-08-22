@@ -63,22 +63,14 @@ const MusicPlayer = ({ audioUrl }) => {
     );
 };
 
-// Themed Loader Component
+// --- THIS IS THE CORRECTED LOADER COMPONENT ---
 const NarutoLoader = () => (
     <div className="flex flex-col items-center justify-center text-center">
-        <svg width="80" height="80" viewBox="0 0 100 100" className="animate-spin" style={{ animationDuration: '2s' }}>
-            <circle cx="50" cy="50" r="45" fill="none" stroke="#FF5722" strokeWidth="4" />
-            <circle cx="50" cy="50" r="15" fill="#FF5722" />
-            <path d="M50 5 C 74.85 5, 95 25.15, 95 50 C 95 25.15, 74.85 5, 50 5" fill="none" stroke="#FF5722" strokeWidth="1">
-                <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="120 50 50" dur="0.67s" repeatCount="indefinite" />
-            </path>
-            <path d="M50 5 C 25.15 5, 5 25.15, 5 50 C 5 25.15, 25.15 5, 50 5" fill="none" stroke="#FF5722" strokeWidth="1">
-                <animateTransform attributeName="transform" type="rotate" from="120 50 50" to="240 50 50" dur="0.67s" repeatCount="indefinite" />
-            </path>
-             <path d="M5 50 C 5 74.85, 25.15 95, 50 95 C 25.15 95, 5 74.85, 5 50" fill="none" stroke="#FF5722" strokeWidth="1">
-                <animateTransform attributeName="transform" type="rotate" from="240 50 50" to="360 50 50" dur="0.67s" repeatCount="indefinite" />
-            </path>
-        </svg>
+        <img 
+            src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3MTA2anV5cjV1OTJsNWoxcDg3bDJtbTBlcnAwY3Nxcjg3bzE2c2swMCZlcD12MV9naWZzX3JlbGF0ZWQmY3Q9Zw/u3BZwClQTqY2Q/giphy.gif"
+            alt="Loading..."
+            className="w-48 h-auto"
+        />
         <p className="text-orange-400 text-xl font-naruto mt-4">Verifying Mission Details...</p>
     </div>
 );
@@ -98,7 +90,7 @@ function Payment() {
     const [error, setError] = useState("");
     const [close, setClose] = useState(false);
     const [currentQrIndex, setCurrentQrIndex] = useState(0);
-    const [isUploaderReady, setIsUploaderReady] = useState(false); // **NEW**: State to track uploader readiness
+    const [isUploaderReady, setIsUploaderReady] = useState(false);
     const wid = useRef();
     const socketRef = useRef();
 
@@ -106,7 +98,6 @@ function Payment() {
     const totalPrice = totalMembers * 350;
 
     useEffect(() => {
-        // **FIX**: Check if Cloudinary script is loaded
         if (window.cloudinary) {
             let myWidget = window.cloudinary.createUploadWidget(
                 {
@@ -122,7 +113,7 @@ function Payment() {
                 }
             );
             wid.current = myWidget;
-            setIsUploaderReady(true); // **NEW**: Set uploader as ready
+            setIsUploaderReady(true);
         } else {
             console.error("Cloudinary script not loaded");
         }
@@ -324,27 +315,41 @@ function Payment() {
                 </form>
             </motion.div>
 
-            {(loading || isDone || error) && (
-                <Modal isLoading={loading}>
+{(loading || isDone || error) && (
+                <Modal>
                     {loading && <NarutoLoader />}
+                    
+                    {/* --- NEW STYLED SUCCESS MESSAGE --- */}
                     {isDone && (
-                        <div className="text-center text-gray-800">
+                        <motion.div 
+                            className="text-center text-white bg-gray-900/80 border-2 border-orange-500/50 rounded-2xl shadow-2xl p-8 max-w-lg w-full"
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.5 }}
+                        >
                             <img src={done} alt="Success" className="w-32 h-32 mx-auto" />
-                            <p className="text-2xl font-bold mt-4">Submission Received!</p>
-                            <p className="mt-2">Your payment is under verification. You will receive a confirmation email once it is approved.</p>
+                            <h2 className="text-3xl font-naruto text-orange-400 mt-4">Mission Complete!</h2>
+                            <p className="mt-3 text-gray-300">Your submission has been received and is now under verification. You will get a confirmation email once it's approved.</p>
                             <Link to="/">
-                                <button className="mt-6 bg-orange-500 px-6 py-2 text-white rounded hover:bg-orange-600">Return to Village</button>
+                                <button className="mt-8 bg-orange-500 px-8 py-3 text-white font-bold rounded-lg hover:bg-orange-600 transition-colors">Return to Village</button>
                             </Link>
-                        </div>
+                        </motion.div>
                     )}
+
+                    {/* --- NEW STYLED ERROR MESSAGE --- */}
                     {error && (
-                        <div className="text-center text-gray-800">
-                            <p className="text-2xl font-bold text-red-500">Mission Failed!</p>
-                            <p className="mt-2">{error}</p>
-                            <button onClick={() => setError("")} className="mt-6 bg-orange-500 px-6 py-2 text-white rounded hover:bg-orange-600">
+                         <motion.div 
+                            className="text-center text-white bg-gray-900/80 border-2 border-red-500/50 rounded-2xl shadow-2xl p-8 max-w-lg w-full"
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.5 }}
+                        >
+                            <h2 className="text-3xl font-naruto text-red-500">Mission Failed!</h2>
+                            <p className="mt-3 text-gray-300">{error}</p>
+                            <button onClick={() => setError("")} className="mt-8 bg-orange-500 px-8 py-3 text-white font-bold rounded-lg hover:bg-orange-600 transition-colors">
                                 Try Again
                             </button>
-                        </div>
+                        </motion.div>
                     )}
                 </Modal>
             )}
