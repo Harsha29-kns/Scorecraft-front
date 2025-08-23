@@ -6,6 +6,8 @@ import GameScore from "./GameScore";
 import { useNavigate } from "react-router-dom";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import Papa from "papaparse";
+
 
 const socket = io(api);
 
@@ -70,7 +72,7 @@ function Admin() {
     const [selectedTeamForPass, setSelectedTeamForPass] = useState("");
     const [isGeneratingPass, setIsGeneratingPass] = useState(false);
     const passContainerRef = useRef(null);
-    
+
     // --- NEW: State for PPT Template ---
     const [pptTemplate, setPptTemplate] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -108,7 +110,7 @@ function Admin() {
         try {
             const formData = new FormData();
             formData.append("file", pptTemplate);
-            formData.append("upload_preset", "vh0llv8b"); 
+            formData.append("upload_preset", "vh0llv8b");
 
             const response = await axios.post(
                 "https://api.cloudinary.com/v1_1/dus9hgplo/raw/upload",
@@ -128,6 +130,58 @@ function Admin() {
         }
     };
 
+    const handleExportMembers = () => {
+        const flatData = [];
+        teams.forEach(team => {
+            const teamInfo = {
+                // Common team-level info
+                
+                
+                
+            };
+    
+            // Add lead info
+            flatData.push({
+                ...teamInfo,
+                "Team Name": team.teamname,
+                "Payment Status": team.verified ? "Yes" : "No",
+                "Member Name": team.name,
+                "Role": "Lead",
+                "Registration Number": team.registrationNumber,
+                "Year": team.year,
+                "Department": team.department,
+                "Email": team.email,
+                "Phone": team.phone,
+                "Transaction ID": team.transtationId,
+                "Payment Image URL": team.imgUrl,
+            });
+    
+            // Add member info
+            team.teamMembers.forEach(member => {
+                flatData.push({
+                    ...teamInfo,
+                    "Member Name": member.name,
+                    "Role": "Member",
+                    "Registration Number": member.registrationNumber,
+                    "Year": member.year,
+                    "Department": member.department,
+                    "Email": member.email,
+                    "Phone": member.phone,
+                });
+            });
+        });
+    
+        const csv = Papa.unparse(flatData);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", "members_export.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     useEffect(() => {
         if (!isAuthenticated) {
             setLoading(false);
@@ -145,7 +199,7 @@ function Admin() {
 
                 setTeams(teamsRes.data);
                 setAllDomains(domainsRes.data);
-                
+
                 const pendingIssuesTeams = issuesRes.data
                     .map(team => ({
                         ...team,
@@ -162,7 +216,7 @@ function Admin() {
         }
         fetchData();
     }, [isAuthenticated]);
-    
+
     const fetchIssues = async () => {
         setIssuesLoading(true);
         try {
@@ -207,7 +261,7 @@ function Admin() {
             fetchIssues();
         }
     };
-    
+
     const handleSendReminder = () => {
         if (!reminderText.trim()) {
             setReminderError("Reminder message cannot be empty.");
@@ -221,7 +275,7 @@ function Admin() {
             setReminderText("");
         }, 1000);
     };
-    
+
     const handleVerifyTeam = async (teamId) => {
         try {
             await axios.post(`${api}/event/event/verify/${teamId}`);
@@ -231,7 +285,7 @@ function Admin() {
             alert("Verification failed. Please try again.");
         }
     };
-    
+
     const handleDomainChange = async (teamId, newDomain) => {
         const originalTeams = [...teams];
         setTeams(prev => prev.map(t => t._id === teamId ? { ...t, Domain: newDomain } : t));
@@ -261,7 +315,7 @@ function Admin() {
 
         setIsGeneratingPass(true);
         const passElement = document.getElementById(`credential-pass-${team._id}`);
-        
+
         if (!passElement) {
             console.error("Pass element could not be found in the DOM!");
             setIsGeneratingPass(false);
@@ -333,21 +387,21 @@ function Admin() {
             </div>
         );
     }
-    
+
     return (
         <div className="min-h-screen p-6" style={{ backgroundImage: `url('https://images6.alphacoders.com/605/605598.jpg')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
             <div className="relative z-10 max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-10">
                     <h1 className="text-5xl font-naruto text-orange-500 drop-shadow-lg">Hokage's Dashboard</h1>
-                    <button 
+                    <button
                         onClick={handleLogout}
                         className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
                     >
                         Logout
                     </button>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                     <StatCard title="Total Teams" value={teams.length} color="border-blue-500" />
                     <StatCard title="Verified" value={verifiedCount} color="border-green-500" />
@@ -359,6 +413,9 @@ function Admin() {
                     <button onClick={() => setShowVerificationModal(true)} className="w-full md:w-auto flex-1 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg hover:scale-105 transition-transform">
                         Verify Payments
                     </button>
+                    <button onClick={handleExportMembers} className="w-full md:w-auto flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg hover:scale-105 transition-transform">
+    Export Members (CSV)
+</button>
                     <button onClick={() => setShowDomainModal(true)} className="w-full md:w-auto flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-8 rounded-lg transition-colors">
                         Manage Domains
                     </button>
@@ -383,7 +440,7 @@ function Admin() {
                     >
                         Attendance Open
                     </button>
-                    <button 
+                    <button
                         onClick={() => setShowCredentialModal(true)}
                         className="w-full md:w-auto flex-1 bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg hover:scale-105 transition-transform"
                     >
@@ -450,8 +507,8 @@ function Admin() {
                             <div className="space-y-4">
                                 <p className="text-gray-300 text-center">Select a verified team to download their pass with the password and all member QR codes.</p>
                                 <div className="flex flex-col sm:flex-row gap-4">
-                                    <select 
-                                        value={selectedTeamForPass} 
+                                    <select
+                                        value={selectedTeamForPass}
                                         onChange={(e) => setSelectedTeamForPass(e.target.value)}
                                         className="flex-grow p-3 bg-gray-800 text-white rounded-md border border-gray-700 focus:outline-none focus:border-cyan-500"
                                     >
@@ -460,7 +517,7 @@ function Admin() {
                                             <option key={team._id} value={team._id}>{team.teamname}</option>
                                         ))}
                                     </select>
-                                    <button 
+                                    <button
                                         onClick={handleDownloadPass}
                                         disabled={!selectedTeamForPass || isGeneratingPass}
                                         className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -472,64 +529,64 @@ function Admin() {
                         </div>
                     </div>
                 )}
-                
+
                 {showVerificationModal && (
-                       <div className="fixed inset-0 bg-black/80 flex justify-center items-center z-50 p-4">
-                            <div className="bg-gray-900 border-2 border-orange-500/50 rounded-xl shadow-lg p-6 w-full max-w-4xl flex flex-col">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-2xl text-orange-400 font-naruto">Payment Verification</h2>
-                                    <button className="text-gray-400 hover:text-white text-3xl" onClick={() => setShowVerificationModal(false)}>&times;</button>
-                                </div>
-                                <div className="flex border-b border-gray-700 mb-4">
-                                    <button onClick={() => setVerificationTab('pending')} className={`py-2 px-4 font-semibold ${verificationTab === 'pending' ? 'text-orange-400 border-b-2 border-orange-400' : 'text-gray-400'}`}>Pending ({notVerifiedCount})</button>
-                                    <button onClick={() => setVerificationTab('verified')} className={`py-2 px-4 font-semibold ${verificationTab === 'verified' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-400'}`}>Verified ({verifiedCount})</button>
-                                </div>
-                                <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
-                                    {teams.filter(t => verificationTab === 'pending' ? !t.verified : t.verified).map((team) => (
-                                        <div key={team._id} className="bg-gray-800 rounded-lg p-4 shadow">
-                                            <div className="flex justify-between items-center">
-                                                <div>
-                                                    <p className="text-white font-semibold">{team.teamname}</p>
-                                                    <p className="text-gray-400 text-sm">{team.email}</p>
+                            <div className="fixed inset-0 bg-black/80 flex justify-center items-center z-50 p-4">
+                                <div className="bg-gray-900 border-2 border-orange-500/50 rounded-xl shadow-lg p-6 w-full max-w-4xl flex flex-col">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h2 className="text-2xl text-orange-400 font-naruto">Payment Verification</h2>
+                                        <button className="text-gray-400 hover:text-white text-3xl" onClick={() => setShowVerificationModal(false)}>&times;</button>
+                                    </div>
+                                    <div className="flex border-b border-gray-700 mb-4">
+                                        <button onClick={() => setVerificationTab('pending')} className={`py-2 px-4 font-semibold ${verificationTab === 'pending' ? 'text-orange-400 border-b-2 border-orange-400' : 'text-gray-400'}`}>Pending ({notVerifiedCount})</button>
+                                        <button onClick={() => setVerificationTab('verified')} className={`py-2 px-4 font-semibold ${verificationTab === 'verified' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-400'}`}>Verified ({verifiedCount})</button>
+                                    </div>
+                                    <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                                        {teams.filter(t => verificationTab === 'pending' ? !t.verified : t.verified).map((team) => (
+                                            <div key={team._id} className="bg-gray-800 rounded-lg p-4 shadow">
+                                                <div className="flex justify-between items-center">
+                                                    <div>
+                                                        <p className="text-white font-semibold">{team.teamname}</p>
+                                                        <p className="text-gray-400 text-sm">{team.email}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-4">
+                                                        <button onClick={() => toggleTeamDetails(team._id)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded font-semibold">{expandedTeam === team._id ? 'Collapse' : 'Expand'}</button>
+                                                        {verificationTab === 'pending' && (
+                                                            <button onClick={() => handleVerifyTeam(team._id)} className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow">Verify</button>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center gap-4">
-                                                    <button onClick={() => toggleTeamDetails(team._id)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded font-semibold">{expandedTeam === team._id ? 'Collapse' : 'Expand'}</button>
-                                                    {verificationTab === 'pending' && (
-                                                        <button onClick={() => handleVerifyTeam(team._id)} className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow">Verify</button>
-                                                    )}
-                                                </div>
+                                                {expandedTeam === team._id && (
+                                                    <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                        <div>
+                                                            <h4 className="font-bold text-orange-400 mb-2">Team Members:</h4>
+                                                            <ul className="list-disc list-inside text-gray-300 space-y-1">
+                                                                <li>{team.name} (Leader)</li>
+                                                                {team.teamMembers.map((member, index) => (<li key={index}>{member.name}</li>))}
+                                                            </ul>
+                                                            <h4 className="font-bold text-orange-400 mt-4 mb-2">Payment Details:</h4>
+                                                            <p className="text-gray-300"><span className="font-semibold">UPI ID:</span> {team.upiId}</p>
+                                                            <p className="text-gray-300"><span className="font-semibold">Transaction ID:</span> {team.transtationId}</p>
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-orange-400 mb-2">Payment Proof:</h4>
+                                                            <a href={team.imgUrl} target="_blank" rel="noopener noreferrer"><img src={team.imgUrl} alt="Payment Proof" className="rounded-lg w-full h-auto max-h-60 object-contain cursor-pointer"/></a>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                            {expandedTeam === team._id && (
-                                                <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                    <div>
-                                                        <h4 className="font-bold text-orange-400 mb-2">Team Members:</h4>
-                                                        <ul className="list-disc list-inside text-gray-300 space-y-1">
-                                                            <li>{team.name} (Leader)</li>
-                                                            {team.teamMembers.map((member, index) => (<li key={index}>{member.name}</li>))}
-                                                        </ul>
-                                                        <h4 className="font-bold text-orange-400 mt-4 mb-2">Payment Details:</h4>
-                                                        <p className="text-gray-300"><span className="font-semibold">UPI ID:</span> {team.upiId}</p>
-                                                        <p className="text-gray-300"><span className="font-semibold">Transaction ID:</span> {team.transtationId}</p>
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="font-bold text-orange-400 mb-2">Payment Proof:</h4>
-                                                        <a href={team.imgUrl} target="_blank" rel="noopener noreferrer"><img src={team.imgUrl} alt="Payment Proof" className="rounded-lg w-full h-auto max-h-60 object-contain cursor-pointer"/></a>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
                 )}
-                
+
                 {showDomainModal && (
                     <div className="fixed inset-0 bg-black/80 flex justify-center items-center z-50 p-4">
                         <div className="bg-gray-900 border-2 border-orange-500/50 rounded-xl shadow-lg p-6 w-full max-w-3xl flex flex-col">
                             <div className="flex justify-between items-center mb-4">
-                                 <h2 className="text-2xl text-orange-400 font-naruto">Change Team Domains</h2>
-                                 <button className="text-gray-400 hover:text-white text-3xl" onClick={() => setShowDomainModal(false)}>&times;</button>
+                               <h2 className="text-2xl text-orange-400 font-naruto">Change Team Domains</h2>
+                               <button className="text-gray-400 hover:text-white text-3xl" onClick={() => setShowDomainModal(false)}>&times;</button>
                             </div>
                             <input type="text" placeholder="Search for a team..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full p-2 mb-4 bg-gray-800 text-white rounded-md border border-gray-700 focus:outline-none focus:border-orange-500"/>
                             <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
@@ -660,12 +717,12 @@ function Admin() {
                             <h2 style={{ fontSize: '1.8rem', fontWeight: 'normal', color: '#4a5568', marginTop: '0.5rem' }}>HACKFORGE 2025</h2>
                             <h3 style={{ fontSize: '1.5rem', fontWeight: 'normal', color: '#4a5568', marginTop: '0.5rem'}}>DONT SHARE THIS PASSWOARDS WITH ANYONE!</h3>
                         </div>
-                        
+
                         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                             <p style={{ fontSize: '1.5rem', fontWeight: 'semibold', color: '#2d3748', marginBottom: '0.5rem' }}>Team: <span style={{ fontWeight: 'bold', color: '#3b82f6' }}>{team.teamname}</span></p>
                             <p style={{ fontSize: '1.125rem', color: '#f82121ff' }}>Sector: {team.Sector || 'N/A'}</p>
                         </div>
-                        
+
                         <div style={{ backgroundColor: '#e2e8f0', border: '1px solid #a0aec0', borderRadius: '1rem', textAlign: 'center', padding: '1.5rem', margin: '2rem 0', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
                             <p style={{ color: '#4a5568', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Team Secret Code / Password</p>
                             <p style={{ fontSize: '2.5rem', fontFamily: 'monospace', fontWeight: 'bold', color: '#3b82f6', letterSpacing: '0.1em' }}>

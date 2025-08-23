@@ -62,11 +62,11 @@ const LeaderboardModal = ({ isOpen, onClose, leaderboard }) => (
         <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
             {leaderboard && leaderboard.length > 0 ? leaderboard.map((item, index) => (
                 <div key={index}
-                     className={`p-3 rounded-xl transition-all duration-300 flex items-center justify-between text-black ${
-                         index === 0 ? 'bg-gradient-to-r from-yellow-400 to-amber-500' :
-                         index === 1 ? 'bg-gradient-to-r from-gray-300 to-gray-400' :
-                         index === 2 ? 'bg-gradient-to-r from-orange-400 to-amber-600' :
-                         'bg-gray-600 text-white'}`}
+                    className={`p-3 rounded-xl transition-all duration-300 flex items-center justify-between text-black ${
+                        index === 0 ? 'bg-gradient-to-r from-yellow-400 to-amber-500' :
+                        index === 1 ? 'bg-gradient-to-r from-gray-300 to-gray-400' :
+                        index === 2 ? 'bg-gradient-to-r from-orange-400 to-amber-600' :
+                        'bg-gray-600 text-white'}`}
                 >
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold bg-white/30">
@@ -350,7 +350,7 @@ function TeamPanel() {
             setIsSubmittingIssue(false);
         }
     };
-    
+
     const startCamera = async () => {
         setShowCamera(true);
         try {
@@ -388,24 +388,24 @@ function TeamPanel() {
             const video = videoRef.current;
             const photo = photoRef.current;
             const ctx = photo.getContext('2d');
-            
+
             photo.width = video.videoWidth;
             photo.height = video.videoHeight;
-            
+
             ctx.drawImage(video, 0, 0, photo.width, photo.height);
-            
+
             const imageData = photo.toDataURL('image/jpeg');
             const cloudinaryResponse = await axios.post(
                 "https://api.cloudinary.com/v1_1/dus9hgplo/image/upload",
                 { file: imageData, upload_preset: "vh0llv8b" }
             );
-            
+
             setCapturedImage(cloudinaryResponse.data.secure_url);
             await axios.post(`${api}/pic`, {
                 id: team._id,
                 photo: cloudinaryResponse.data.secure_url,
             });
-            
+
             stopCamera();
             window.location.reload();
         } catch (err) {
@@ -434,7 +434,7 @@ function TeamPanel() {
             </div>
         );
     }
-    
+
     const verify = () => {
         setLoading(true);
         setError("");
@@ -523,7 +523,7 @@ function TeamPanel() {
             });
             }
         });
-        
+
         socket.on("team", (team) => {
             setTeam(team);
         });
@@ -569,7 +569,7 @@ function TeamPanel() {
                 .finally(() => {
                     setLoading(false);
                 });
-            
+
             socket.emit("domaindat", "");
             socket.emit("prevevent", "");
             socket.emit("domainStat", "");
@@ -587,7 +587,7 @@ function TeamPanel() {
             socket.off("client:receivePPT");
         };
     }, [pass]);
-    
+
     useEffect(() => {
         if (team) {
             socket.emit("join", team.teamname);
@@ -599,7 +599,7 @@ function TeamPanel() {
             }
         });
     }, [team]);
-    
+
     const calculateTimeLeft = (targetDate) => {
         const difference = new Date(targetDate) - new Date();
         if (difference <= 0) {
@@ -718,7 +718,7 @@ function TeamPanel() {
                 </div>
                 <div className="flex flex-wrap justify-center items-center gap-6">
                     {[
-                        { name: 'Event Updates', id: 'event-updates' },
+                        { name: 'Reminders', id: 'reminders' },
                         { name: 'Problem Statement', id: 'problem-statement' },
                     ].map((item) => (
                         <a
@@ -750,10 +750,10 @@ function TeamPanel() {
                     </div>
                     <h1 className="text-5xl md:text-6xl font-naruto text-orange-500 drop-shadow-lg tracking-wider">HACKFORGE</h1>
                     <h2 className="text-orange-300 text-2xl mb-10">[ 24hr Hackathon ]</h2>
-                    
+
                     <div className="relative bg-gray-900/50 border border-orange-500/50 text-white rounded-xl shadow-lg p-8 w-full max-w-md flex flex-col backdrop-blur-md">
                         {error && <p className="text-red-400 text-center mb-4">{error}</p>}
-                        
+
                         <div className="flex flex-col mb-4">
                             <label htmlFor="teamName" className="text-lg mb-2 text-orange-300 font-semibold">Enter Team Name:</label>
                             <input
@@ -765,7 +765,7 @@ function TeamPanel() {
                                 onChange={(e) => setTeamName(e.target.value)}
                             />
                         </div>
-                        
+
                         <div className="flex flex-col mb-6">
                             <label htmlFor="pass" className="text-lg mb-2 text-orange-300 font-semibold">Enter Secret Scroll (Password):</label>
                             <input
@@ -790,7 +790,7 @@ function TeamPanel() {
             </div>
         );
     }
-    
+
     // --- UPDATED MODAL ---
     const DomainSelectionModal = () => (
         <Modal
@@ -828,9 +828,9 @@ function TeamPanel() {
                                     key={domain.id}
                                     onClick={() => handleDomainSelect(domain.id)}
                                     className={`cursor-pointer p-4 rounded-xl transition-all duration-300 border-2 ${domain.id === selectedDomain
-                                            ? 'bg-orange-600 text-white border-orange-400'
-                                            : 'bg-gray-800 hover:bg-gray-700 border-gray-600'
-                                        }`}
+                                        ? 'bg-orange-600 text-white border-orange-400'
+                                        : 'bg-gray-800 hover:bg-gray-700 border-gray-600'
+                                    }`}
                                 >
                                     <h3 className="text-xl font-bold mb-2">{domain.name} ({domain.slots}/10)</h3>
                                     <p className="text-sm opacity-80 line-clamp-3">{domain.description}</p>
@@ -859,7 +859,7 @@ function TeamPanel() {
             </div>
         </Modal>
     );
-    
+
     const CameraSection = () => (
         <div className="flex flex-col justify-center items-center w-full md:w-1/2 mt-4 md:mt-0">
             {photoError && (
@@ -957,7 +957,7 @@ function TeamPanel() {
             </div>
         </div>
     );
-    
+
     const CountdownDisplay = () => (
         <div className="flex flex-col items-center space-y-2">
             <p className="text-gray-300 font-semibold">Domain selection opens in:</p>
@@ -987,11 +987,11 @@ function TeamPanel() {
     const DomainSelectionSection = () => (
         <div id="domain-selection" className="w-full lg:w-1/2 flex flex-col gap-4">
             <div className="rounded-2xl h-96 bg-gray-800 flex items-center justify-center overflow-hidden">
-                <video 
-                    src="./CreativeTeam.mp4" 
-                    autoPlay 
-                    loop 
-                    muted 
+                <video
+                    src="./CreativeTeam.mp4"
+                    autoPlay
+                    loop
+                    muted
                     playsInline
                     className="w-full h-full object-cover"
                 >
@@ -1049,7 +1049,7 @@ function TeamPanel() {
 
         const lastCompletedIndex = eventMilestones.slice().reverse().findIndex(event => new Date(event.time) < currentTime);
         const currentStageIndex = lastCompletedIndex !== -1 ? eventMilestones.length - 1 - lastCompletedIndex : -1;
-    
+
         return (
             <div className="bg-gray-800/70 rounded-2xl p-6 border border-orange-500/30 h-full">
                 <div className="flex justify-center items-center gap-3 mb-8">
@@ -1060,13 +1060,13 @@ function TeamPanel() {
                     {eventMilestones.map((event, index) => {
                         const isCompleted = index <= currentStageIndex;
                         const isActive = index === currentStageIndex + 1;
-        
+
                         return (
                             <React.Fragment key={index}>
                                 <div className="flex flex-col items-center text-center w-full md:w-auto">
                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center border-4 transition-all duration-500 ${
-                                        isCompleted ? 'bg-green-500 border-green-700' : 
-                                        isActive ? 'bg-orange-500 border-orange-700 animate-pulse' : 
+                                        isCompleted ? 'bg-green-500 border-green-700' :
+                                        isActive ? 'bg-orange-500 border-orange-700 animate-pulse' :
                                         'bg-gray-600 border-gray-800'
                                     }`}>
                                         {isCompleted ? <span className="text-white text-xl font-bold">✓</span> : <span className="text-white font-bold">{index + 1}</span>}
@@ -1078,7 +1078,7 @@ function TeamPanel() {
                                         </p>
                                     </div>
                                 </div>
-        
+
                                 {index < eventMilestones.length - 1 && (
                                     <div className={`flex-1 h-1.5 w-full md:w-auto mt-[-2rem] md:mt-0 md:mb-12 rounded-full transition-all duration-500 ${isCompleted ? 'bg-green-500' : 'bg-gray-600'}`}></div>
                                 )}
@@ -1120,7 +1120,7 @@ function TeamPanel() {
                 ) : (
                     team ? (
                         <div className="w-full max-w-7xl p-2 sm:p-6 mx-auto">
-                            
+
                             <div id="team-profile" className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-4 sm:p-6 mb-10 border border-orange-500/20">
                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                                     <div className="flex items-center gap-4">
@@ -1136,7 +1136,7 @@ function TeamPanel() {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             {/* --- Action Center --- */}
                             <div id="action-center" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
                                 <div
@@ -1166,7 +1166,7 @@ function TeamPanel() {
                                     <p className="text-gray-400 text-sm mt-1">Need assistance? Contact organizers.</p>
                                 </div>
                             </div>
-                            
+
                             <div id="team-members" className="w-full min-h-[464px] bg-gray-800/60 rounded-2xl border border-orange-500/30 flex flex-col md:flex-row justify-center items-center p-4">
                                 <div className="flex flex-col w-full md:w-1/2 p-4">
                                     <div className="flex justify-center w-full items-center mb-6">
@@ -1204,7 +1204,7 @@ function TeamPanel() {
                                 </div>
                                 <CameraSection />
                             </div>
-                            
+
                             <div className="flex flex-col lg:flex-row justify-evenly gap-6 mt-10">
                                 <DomainSelectionSection />
                                 <div id="assistance-and-reminders" className="w-full lg:w-1/2 mt-10 lg:mt-0 flex flex-col gap-6">
@@ -1229,15 +1229,15 @@ function TeamPanel() {
                                                             </span>
                                                         </div>
                                                         <p className="text-gray-500 text-xs mt-2 text-right">
-    {
-        // First, check if issue.createdAt exists and results in a valid date
-        issue.timestamp && !isNaN(new Date(issue.timestamp))
-            // If it's valid, format it
-            ? new Date(issue.timestamp).toLocaleString()
-            // Otherwise, show a clean fallback
-            : '—'
-    }
-</p>
+                            {
+                                // First, check if issue.createdAt exists and results in a valid date
+                                issue.timestamp && !isNaN(new Date(issue.timestamp))
+                                    // If it's valid, format it
+                                    ? new Date(issue.timestamp).toLocaleString()
+                                    // Otherwise, show a clean fallback
+                                    : '—'
+                            }
+                        </p>
                                                     </div>
                                                 ))
                                             ) : (
@@ -1367,9 +1367,53 @@ function TeamPanel() {
                         <p className="text-center text-xl mt-10">Failed to load team data. Please try again later.</p>
                     )
                 )}
-                <footer className="mt-auto border-t border-gray-800">
-                    <p className="text-center p-4 text-gray-400">Made with By Scorecraft KARE</p>
-                </footer>
+                <footer className="w-full bg-gray-900/50 backdrop-blur-sm border-t border-orange-500/20 mt-12 py-8">
+    <div className="max-w-7xl mx-auto px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            <div className="flex flex-col items-center md:items-start">
+                <div className="flex items-center gap-3 mb-4">
+                    <img src={scorecraft} className="w-12 h-12 rounded-full" alt="Logo" />
+                    <div>
+                        <h2 className="text-xl font-bold text-orange-400 font-naruto">HACKFORGE</h2>
+                        <p className="text-sm text-gray-400">24hr Hackathon</p>
+                    </div>
+                </div>
+                <p className="text-gray-400 text-center md:text-left text-sm">
+                    Build, innovate, and compete with the brightest minds.
+                </p>
+            </div>
+
+            <div className="flex flex-col items-center">
+                <h3 className="text-lg font-semibold text-white mb-4">Quick Links</h3>
+                <ul className="space-y-2">
+                    <li><a onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="text-gray-400 hover:text-orange-400 transition-colors cursor-pointer">Scroll to Top</a></li>
+                    <li><a onClick={() => scrollToSection('event-updates')} className="text-gray-400 hover:text-orange-400 transition-colors cursor-pointer">Event Updates</a></li>
+                    <li><a onClick={() => scrollToSection('problem-statement')} className="text-gray-400 hover:text-orange-400 transition-colors cursor-pointer">Problem Statement</a></li>
+                </ul>
+            </div>
+
+            <div className="flex flex-col items-center md:items-end">
+                <h3 className="text-lg font-semibold text-white mb-4">Connect With Us</h3>
+                <div className="flex space-x-4">
+                    <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                        <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" /></svg>
+                    </a>
+                    <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                        <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.71v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" /></svg>
+                    </a>
+                    <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                        <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12.014c0 4.437 2.865 8.18 6.839 9.504.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.031-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.03 1.595 1.03 2.688 0 3.848-2.338 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.001 10.001 0 0022 12.014C22 6.477 17.523 2 12 2z" clipRule="evenodd" /></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div className="mt-8 border-t border-gray-700 pt-8 text-center text-sm text-gray-400">
+            <p>&copy; {new Date().getFullYear()} Scorecraft KARE. All Rights Reserved.</p>
+        </div>
+    </div>
+</footer>
             </div>
         </div>
     );

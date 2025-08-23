@@ -3,9 +3,7 @@ import axios from "axios";
 import api from "./api";
 
 function GameScore({ team }) {
-  // State for the input field (for the NEW total score)
-  const [newScore, setNewScore] = useState(""); 
-  // State to display the team's current score
+  const [newScore, setNewScore] = useState("");
   const [currentScore, setCurrentScore] = useState(team.GameScore || 0);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -13,23 +11,22 @@ function GameScore({ team }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
+    setMessage("");
 
     if (newScore === "" || isNaN(newScore)) {
       setMessage("Please enter a valid numeric score.");
       setLoading(false);
       return;
     }
-    
+
     try {
-      // Use axios to call the new API endpoint
       const response = await axios.post(`${api}/api/admin/update-score/${team._id}`, {
         gameScore: Number(newScore),
       });
 
-      // Update the displayed score with the new value from the server
       setCurrentScore(response.data.team.GameScore);
       setMessage("Score updated successfully!");
-      setNewScore(""); // Clear the input field
+      setNewScore("");
 
     } catch (error) {
       console.error("Failed to update score:", error);
@@ -40,18 +37,20 @@ function GameScore({ team }) {
   }
 
   return (
-    <div className="flex w-full justify-center">
-      <div className="bg-white text-black p-6 rounded-lg shadow-lg w-80">
-        <h2 className="text-xl font-bold mb-2 text-center">{team.teamname}</h2>
-        
-        {/* Display the current score */}
-        <p className="text-center text-2xl font-bold text-blue-600 mb-4">
-          Current Score: {currentScore}
-        </p>
+    <div className="flex w-full justify-center p-4">
+      <div className="bg-gray-800 border border-orange-500/30 text-white p-6 rounded-2xl shadow-lg w-full max-w-sm transform transition-all duration-300 hover:shadow-orange-500/20">
+        <h2 className="text-2xl font-bold mb-2 text-center text-orange-400 font-naruto">{team.teamname}</h2>
+
+        <div className="text-center my-6">
+          <p className="text-sm text-gray-400 uppercase tracking-wider">Current Score</p>
+          <p className="text-6xl font-bold text-white drop-shadow-lg">
+            {currentScore}
+          </p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor={`score-${team._id}`} className="block text-sm font-medium text-gray-700">
+            <label htmlFor={`score-${team._id}`} className="block text-sm font-medium text-gray-300 mb-1">
               Set New Total Score
             </label>
             <input
@@ -63,12 +62,13 @@ function GameScore({ team }) {
                 setNewScore(e.target.value);
                 setMessage("");
               }}
-              className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onWheel={(e) => e.target.blur()}
+              className="mt-1 w-full p-3 bg-gray-700 border-2 border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
             />
           </div>
-            
+
           {message && (
-            <p className={`text-sm text-center ${message.includes("Error") ? "text-red-500" : "text-green-600"}`}>
+            <p className={`text-sm text-center font-semibold ${message.includes("Error") ? "text-red-400" : "text-green-400"}`}>
               {message}
             </p>
           )}
@@ -76,9 +76,16 @@ function GameScore({ team }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400"
+            className="w-full py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {loading ? "Updating..." : "Update Score"}
+            {loading ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Updating...
+              </>
+            ) : (
+              "Update Score"
+            )}
           </button>
         </form>
       </div>

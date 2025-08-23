@@ -6,7 +6,6 @@ import Form from './form';
 import Admin from './admin';
 import Attd from './Attd';
 import TeamPanel from './TeamPanel';
-import EventUp from './EventUp';
 import Marks from './Marks';
 import Leaderboard from './LeaderBoard';
 import AttdDetail from './AttdDetail';
@@ -25,7 +24,6 @@ function App() {
         <Route path='/admin-login' element={<Admin/>}/>
         <Route path='/attd' element={<Attd/>}/>
         <Route path='/teampanel' element={<TeamPanel/>}/>
-        <Route path='/event' element={<EventUp/>}/>
         <Route path='/marks' element={<Marks/>}/>
         <Route path="/all-teams" element={<AllTeams />}/>
         <Route path='/leaderboard' element={<Leaderboard/>}/>
