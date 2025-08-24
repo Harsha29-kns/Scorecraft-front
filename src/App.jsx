@@ -9,6 +9,7 @@ import TeamPanel from './TeamPanel';
 import Marks from './Marks';
 import Leaderboard from './LeaderBoard';
 import AttdDetail from './AttdDetail';
+import Instructions from "./Instructions";
 
 import Pics from './pics';
 import DomainStats from './DomainStats';
@@ -30,6 +31,7 @@ function App() {
         <Route path='/attdetail' element={<AttdDetail/>}/>
         <Route path='/photos'  element={<Pics/>}/>
         <Route path='/domaindata' element={<DomainStats/>}/>
+        <Route path='/instructions' element={<Instructions/>}/>
       </Routes>           
     );
 }

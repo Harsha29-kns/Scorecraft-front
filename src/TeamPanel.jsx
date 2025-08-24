@@ -6,7 +6,6 @@ import "driver.js/dist/driver.css";
 import Modal from 'react-modal';
 
 // Import your images
-import kalasalingam from "/public/kalasalingam.png";
 import lod from "/image_processing20210907-13511-1juj33d.gif";
 import expra from "/public/expra.png";
 import scorecraft from "/public/scorecraft.jpg";
@@ -236,6 +235,157 @@ const AssistanceModal = ({ isOpen, onClose, isSubmittingIssue, issueError, issue
     </Modal>
 );
 
+const CameraModal = ({ isOpen, onClose, onPhotoSubmit }) => {
+    const [showCamera, setShowCamera] = useState(false);
+    const [capturedImage, setCapturedImage] = useState(null);
+    const [photoLoading, setPhotoLoading] = useState(false);
+    const [photoError, setPhotoError] = useState("");
+    const videoRef = useRef(null);
+    const photoRef = useRef(null);
+
+    const startCamera = async () => {
+        setPhotoError("");
+        setCapturedImage(null);
+        setShowCamera(true);
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: "user",
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 },
+                },
+                audio: false,
+            });
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+        } catch (err) {
+            console.error("Error accessing camera:", err);
+            setPhotoError("Failed to access camera. Please check permissions.");
+        }
+    };
+
+    const stopCamera = () => {
+        const stream = videoRef.current?.srcObject;
+        if (stream) {
+            const tracks = stream.getTracks();
+            tracks.forEach((track) => track.stop());
+            videoRef.current.srcObject = null;
+        }
+        setShowCamera(false);
+    };
+
+    const capturePhoto = async () => {
+        setPhotoLoading(true);
+        setPhotoError("");
+        try {
+            const video = videoRef.current;
+            const photo = photoRef.current;
+            const ctx = photo.getContext('2d');
+
+            photo.width = video.videoWidth;
+            photo.height = video.videoHeight;
+
+            ctx.drawImage(video, 0, 0, photo.width, photo.height);
+
+            const imageData = photo.toDataURL('image/jpeg');
+            const cloudinaryResponse = await axios.post(
+                "https://api.cloudinary.com/v1_1/dsvwojzli/image/upload",
+                { file: imageData, upload_preset: "grouppic" }
+            );
+
+            onPhotoSubmit(cloudinaryResponse.data.secure_url);
+            setCapturedImage(cloudinaryResponse.data.secure_url);
+            stopCamera();
+        } catch (err) {
+            setPhotoError("Failed to upload image. Please try again.");
+            console.error("Photo upload error:", err);
+        } finally {
+            setPhotoLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen) {
+            startCamera();
+        } else {
+            stopCamera();
+            setCapturedImage(null);
+        }
+    }, [isOpen]);
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onRequestClose={onClose}
+            style={customModalStyles}
+            contentLabel="Team Photo"
+            appElement={document.getElementById('root') || undefined}
+        >
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-orange-400 font-naruto">Take a Team Photo</h2>
+                <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors text-3xl font-light">×</button>
+            </div>
+            {photoError && (
+                <div className="text-red-400 bg-red-900/30 p-3 rounded mb-4 w-full text-center">
+                    {photoError}
+                </div>
+            )}
+            <div className="flex flex-col items-center w-full">
+                {showCamera ? (
+                    <div className="relative w-full aspect-video">
+                        <video
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            className="absolute top-0 left-0 w-full h-full object-cover rounded-2xl border-2 border-orange-500"
+                        />
+                    </div>
+                ) : capturedImage ? (
+                    <div className="relative w-full aspect-video">
+                        <img
+                            src={capturedImage}
+                            alt="Captured Team Photo"
+                            className="w-full h-full object-cover rounded-xl"
+                        />
+                    </div>
+                ) : (
+                    <div className="relative w-full flex justify-center items-center aspect-video bg-gray-800 rounded-xl">
+                        <svg className="w-1/3 h-1/3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2-2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </div>
+                )}
+                <canvas ref={photoRef} style={{ display: 'none' }} />
+                <div className="flex justify-center mt-4 space-x-4">
+                    {showCamera ? (
+                        <button
+                            onClick={capturePhoto}
+                            disabled={photoLoading}
+                            className="bg-orange-600 px-6 py-3 rounded-full text-white hover:bg-orange-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                        >
+                            {photoLoading ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    Uploading...
+                                </>
+                            ) : (
+                                <>📸 Capture Photo</>
+                            )}
+                        </button>
+                    ) : (
+                        <button
+                            className="mt-4 bg-orange-600 px-6 py-3 rounded-full text-white hover:bg-orange-700 transition-colors"
+                            onClick={startCamera}
+                        >
+                            Retake Photo
+                        </button>
+                    )}
+                </div>
+            </div>
+        </Modal>
+    );
+};
+
+
 function TeamPanel() {
     const [pass, setPass] = useState(localStorage.getItem("token") || "");
     const [teamName, setTeamName] = useState("");
@@ -260,9 +410,7 @@ function TeamPanel() {
     const [domain, setDomain] = useState("");
     const [isDomainModalOpen, setIsDomainModalOpen] = useState(false);
     const [ProblemStatement, setProblemStatement] = useState("");
-    const [photoLoading, setPhotoLoading] = useState(false);
     const [problemSubmitting, setProblemSubmitting] = useState(false);
-    const [photoError, setPhotoError] = useState("");
     const [problemError, setProblemError] = useState("");
     const [hasNewUpdate, setHasNewUpdate] = useState(false);
     const [notificationVisible, setNotificationVisible] = useState(false);
@@ -273,10 +421,7 @@ function TeamPanel() {
     const [issueText, setIssueText] = useState("");
     const [isSubmittingIssue, setIsSubmittingIssue] = useState(false);
     const [issueError, setIssueError] = useState("");
-    const [showCamera, setShowCamera] = useState(false);
-    const [capturedImage, setCapturedImage] = useState(null);
-    const videoRef = useRef(null);
-    const photoRef = useRef(null);
+    const [isCameraModalOpen, setIsCameraModalOpen] = useState(false); // New state for camera modal
 
     // --- State for Modals ---
     const [isAssistanceModalOpen, setIsAssistanceModalOpen] = useState(false);
@@ -351,68 +496,17 @@ function TeamPanel() {
         }
     };
 
-    const startCamera = async () => {
-        setShowCamera(true);
+    const handlePhotoSubmit = async (imageDataUrl) => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: "user",
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 },
-                },
-                audio: false,
-            });
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-            }
-        } catch (err) {
-            console.error("Error accessing camera:", err);
-            setPhotoError("Failed to access camera. Please check permissions.");
-        }
-    };
-
-    const stopCamera = () => {
-        const stream = videoRef.current?.srcObject;
-        if (stream) {
-            const tracks = stream.getTracks();
-            tracks.forEach((track) => track.stop());
-            videoRef.current.srcObject = null;
-        }
-        setShowCamera(false);
-    };
-
-    const capturePhoto = async () => {
-        setPhotoLoading(true);
-        setPhotoError("");
-        try {
-            const video = videoRef.current;
-            const photo = photoRef.current;
-            const ctx = photo.getContext('2d');
-
-            photo.width = video.videoWidth;
-            photo.height = video.videoHeight;
-
-            ctx.drawImage(video, 0, 0, photo.width, photo.height);
-
-            const imageData = photo.toDataURL('image/jpeg');
-            const cloudinaryResponse = await axios.post(
-                "https://api.cloudinary.com/v1_1/dus9hgplo/image/upload",
-                { file: imageData, upload_preset: "vh0llv8b" }
-            );
-
-            setCapturedImage(cloudinaryResponse.data.secure_url);
-            await axios.post(`${api}/pic`, {
+            const response = await axios.post(`${api}/pic`, {
                 id: team._id,
-                photo: cloudinaryResponse.data.secure_url,
+                photo: imageDataUrl,
             });
-
-            stopCamera();
-            window.location.reload();
+            setTeam(response.data);
+            setIsCameraModalOpen(false);
         } catch (err) {
-            setPhotoError("Failed to upload image. Please try again.");
             console.error("Photo upload error:", err);
-        } finally {
-            setPhotoLoading(false);
+            // You can add a state to display this error in the main panel if needed.
         }
     };
 
@@ -791,26 +885,37 @@ function TeamPanel() {
         );
     }
 
-    // --- UPDATED MODAL ---
+    // --- ENHANCED DOMAIN SELECTION MODAL ---
     const DomainSelectionModal = () => (
         <Modal
             isOpen={isDomainModalOpen}
-            onRequestClose={() => setIsDomainModalOpen(false)}
-            style={customModalStyles} // The width is now updated in the style object
+            onRequestClose={() => !DomainLoading && setIsDomainModalOpen(false)} // Prevent closing while loading
+            style={customModalStyles}
             contentLabel="Domain Selection"
+            appElement={document.getElementById('root') || undefined}
         >
-            <div className="text-white">
+            <div className="text-white relative"> {/* Added relative positioning */}
+
+                {/* --- NEW: Loading Overlay --- */}
+                {DomainLoading && (
+                    <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm flex flex-col justify-center items-center rounded-lg z-20">
+                        <img src={lod} className="w-24 h-24" alt="Loading..." />
+                        <p className="text-orange-400 font-naruto text-2xl mt-4 animate-pulse">Confirming Your Path...</p>
+                        <p className="text-gray-300">Please wait.</p>
+                    </div>
+                )}
+                
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold text-orange-400 font-naruto">Choose Your Ninja Way</h2>
                     <button
                         onClick={() => setIsDomainModalOpen(false)}
                         className="text-gray-400 hover:text-white transition-colors text-2xl"
+                        disabled={DomainLoading} // Disable close button while loading
                     >
                         ✕
                     </button>
                 </div>
 
-                {/* New container for side-by-side layout */}
                 <div className="flex gap-6">
                     {/* Scrollable grid for domains */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow max-h-[60vh] overflow-y-auto pr-4">
@@ -828,7 +933,7 @@ function TeamPanel() {
                                     key={domain.id}
                                     onClick={() => handleDomainSelect(domain.id)}
                                     className={`cursor-pointer p-4 rounded-xl transition-all duration-300 border-2 ${domain.id === selectedDomain
-                                        ? 'bg-orange-600 text-white border-orange-400'
+                                        ? 'bg-orange-600 text-white border-orange-400 scale-105'
                                         : 'bg-gray-800 hover:bg-gray-700 border-gray-600'
                                     }`}
                                 >
@@ -843,14 +948,20 @@ function TeamPanel() {
                     <div className="flex flex-col gap-4 w-48 shrink-0">
                         <button
                             onClick={handleDomain}
-                            className="w-full px-6 py-3 rounded-lg bg-orange-600 text-white hover:bg-orange-700 transition-colors disabled:opacity-50"
+                            className="w-full px-6 py-3 rounded-lg bg-orange-600 text-white hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                             disabled={!selectedDomain || DomainLoading}
                         >
-                            {DomainLoading ? "Submitting..." : "Confirm Selection"}
+                            {DomainLoading ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    <span>Submitting...</span>
+                                </>
+                            ) : "Confirm Selection"}
                         </button>
                         <button
                             onClick={() => setIsDomainModalOpen(false)}
                             className="w-full px-6 py-3 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
+                            disabled={DomainLoading}
                         >
                             Cancel
                         </button>
@@ -858,84 +969,6 @@ function TeamPanel() {
                 </div>
             </div>
         </Modal>
-    );
-
-    const CameraSection = () => (
-        <div className="flex flex-col justify-center items-center w-full md:w-1/2 mt-4 md:mt-0">
-            {photoError && (
-                <div className="text-red-400 bg-red-900/30 p-3 rounded mb-4 w-full text-center">
-                    {photoError}
-                </div>
-            )}
-            {showCamera ? (
-                <div className="flex flex-col items-center w-full">
-                    <div className="relative w-full aspect-video">
-                        <video
-                            ref={videoRef}
-                            autoPlay
-                            playsInline
-                            className="absolute top-0 left-0 w-full h-full object-cover rounded-2xl border-2 border-orange-500"
-                        />
-                        <div className="absolute top-4 right-4 flex gap-2">
-                            <button
-                                onClick={stopCamera}
-                                className="bg-red-500 p-2 rounded-full hover:bg-red-600 transition-colors"
-                            >
-                                ✕
-                            </button>
-                        </div>
-                    </div>
-                    <canvas ref={photoRef} style={{ display: 'none' }} />
-                    <div className="flex justify-center mt-4">
-                        <button
-                            onClick={capturePhoto}
-                            disabled={photoLoading}
-                            className="bg-orange-600 px-6 py-3 rounded-full text-white hover:bg-orange-700 transition-colors flex items-center gap-2 disabled:opacity-50"
-                        >
-                            {photoLoading ? (
-                                <>
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                    Uploading...
-                                </>
-                            ) : (
-                                <>📸 Capture Photo</>
-                            )}
-                        </button>
-                    </div>
-                </div>
-            ) : capturedImage || (team && team.GroupPic) ? (
-                <div className="flex flex-col items-center w-full">
-                    <div className="relative w-full aspect-video">
-                        <img
-                            src={capturedImage || team.GroupPic}
-                            alt="Team Photo"
-                            className="w-full h-full object-cover rounded-xl"
-                        />
-                    </div>
-                    <button
-                        className="mt-4 bg-orange-600 px-6 py-3 rounded-full text-white hover:bg-orange-700 transition-colors"
-                        onClick={() => {
-                            stopCamera();
-                            startCamera();
-                        }}
-                    >
-                        Retake Photo
-                    </button>
-                </div>
-            ) : (
-                <div className="flex flex-col items-center justify-center w-full">
-                    <div className="relative w-full flex justify-center items-center aspect-video bg-gray-800 rounded-xl">
-                        <svg className="w-1/3 h-1/3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2-2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    </div>
-                    <button
-                        onClick={startCamera}
-                        className="mt-4 bg-orange-600 border-gray-300 border-2 hover:bg-orange-700 rounded-full px-6 py-3 flex items-center gap-2 text-white"
-                    >
-                        📸 Take A Group Photo!
-                    </button>
-                </div>
-            )}
-        </div>
     );
 
     const NotificationBell = () => (
@@ -1108,6 +1141,11 @@ function TeamPanel() {
                 setIssueText={setIssueText}
                 handleIssueSubmit={handleIssueSubmit}
             />
+            <CameraModal
+                isOpen={isCameraModalOpen}
+                onClose={() => setIsCameraModalOpen(false)}
+                onPhotoSubmit={handlePhotoSubmit}
+            />
             <DomainSelectionModal />
             <ReminderModal isOpen={isReminderModalOpen} onClose={() => setIsReminderModalOpen(false)} reminderText={activeReminder} />
 
@@ -1132,6 +1170,30 @@ function TeamPanel() {
                                                 Welcome, <span className="text-orange-300">{team.teamname}!</span>
                                             </h1>
                                             <p className="text-gray-300 text-sm sm:text-base">Let's build something amazing together.</p>
+                                        </div>
+                                    </div>
+                                    {/* Team Photo Box */}
+                                    <div className="flex-shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
+                                        {team.GroupPic ? (
+                                            <div className="relative w-full aspect-video sm:w-64">
+                                                <img
+                                                    src={team.GroupPic}
+                                                    alt="Team Photo"
+                                                    className="w-full h-full object-cover rounded-xl border-2 border-orange-500"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="relative w-full aspect-video sm:w-64 flex justify-center items-center bg-gray-800 rounded-xl border-2 border-orange-500">
+                                                <svg className="w-1/3 h-1/3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2-2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-center mt-2">
+                                            <button
+                                                onClick={() => setIsCameraModalOpen(true)}
+                                                className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300"
+                                            >
+                                                Team Photo
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -1168,7 +1230,7 @@ function TeamPanel() {
                             </div>
 
                             <div id="team-members" className="w-full min-h-[464px] bg-gray-800/60 rounded-2xl border border-orange-500/30 flex flex-col md:flex-row justify-center items-center p-4">
-                                <div className="flex flex-col w-full md:w-1/2 p-4">
+                                <div className="flex flex-col w-full p-4">
                                     <div className="flex justify-center w-full items-center mb-6">
                                         <img src={profile} className="w-10 mr-3" />
                                         <h2 className="text-orange-400 text-2xl font-bold tracking-wider font-naruto">
@@ -1202,7 +1264,6 @@ function TeamPanel() {
                                         ))}
                                     </div>
                                 </div>
-                                <CameraSection />
                             </div>
 
                             <div className="flex flex-col lg:flex-row justify-evenly gap-6 mt-10">
@@ -1229,15 +1290,15 @@ function TeamPanel() {
                                                             </span>
                                                         </div>
                                                         <p className="text-gray-500 text-xs mt-2 text-right">
-                            {
-                                // First, check if issue.createdAt exists and results in a valid date
-                                issue.timestamp && !isNaN(new Date(issue.timestamp))
-                                    // If it's valid, format it
-                                    ? new Date(issue.timestamp).toLocaleString()
-                                    // Otherwise, show a clean fallback
-                                    : '—'
-                            }
-                        </p>
+                                                            {
+                                                                // First, check if issue.createdAt exists and results in a valid date
+                                                                issue.timestamp && !isNaN(new Date(issue.timestamp))
+                                                                    // If it's valid, format it
+                                                                    ? new Date(issue.timestamp).toLocaleString()
+                                                                    // Otherwise, show a clean fallback
+                                                                    : '—'
+                                                            }
+                                                        </p>
                                                     </div>
                                                 ))
                                             ) : (
@@ -1298,7 +1359,6 @@ function TeamPanel() {
                                 </div>
                             </div>
 
-                            {/* --- Event Tracker Section --- */}
                             <div className="w-full mt-10">
                                 <EventTracker />
                             </div>

@@ -8,8 +8,31 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import Papa from "papaparse";
 
-
 const socket = io(api);
+
+// --- NEW: Notification Component ---
+const Notification = ({ message, type, onClear }) => {
+    useEffect(() => {
+        // Automatically clear the notification after 3 seconds
+        const timer = setTimeout(() => {
+            onClear();
+        }, 3000);
+
+        return () => clearTimeout(timer);
+    }, [onClear]);
+
+    // Determine styles based on the notification type (success or error)
+    const baseStyles = "fixed top-20 right-6 z-50 px-6 py-4 rounded-xl shadow-2xl text-white font-semibold text-lg animate-fade-in-down";
+    const typeStyles = type === 'success' 
+        ? "bg-gradient-to-r from-green-500 to-emerald-600" 
+        : "bg-gradient-to-r from-red-500 to-rose-600";
+
+    return (
+        <div className={`${baseStyles} ${typeStyles}`}>
+            {message}
+        </div>
+    );
+};
 
 // Naruto Themed Loader Component
 const NarutoLoader = () => (
@@ -45,6 +68,9 @@ function Admin() {
     const [isAuthenticated, setIsAuthenticated] = useState(sessionStorage.getItem("adminAuthenticated") === "true");
     const [passwordInput, setPasswordInput] = useState("");
     const [loginError, setLoginError] = useState("");
+
+    // --- NEW: Notification State ---
+    const [notification, setNotification] = useState({ message: '', type: '' });
 
     // --- Dashboard States ---
     const [teams, setTeams] = useState([]);
@@ -98,7 +124,6 @@ function Admin() {
         setPasswordInput("");
     };
 
-    // --- NEW: Handler for PPT Upload and Broadcast ---
     const handleSendPPT = async () => {
         if (!pptTemplate) {
             setUploadError("Please select a PowerPoint template file first.");
@@ -121,10 +146,12 @@ function Admin() {
             socket.emit('admin:sendPPT', { url: fileUrl, fileName: pptTemplate.name });
             setPptTemplate(null);
             document.getElementById('ppt-input').value = null;
+            setNotification({ message: 'PPT Template Sent!', type: 'success' });
 
         } catch (error) {
             console.error("Error uploading PPT:", error);
             setUploadError("Failed to upload the template. Please try again.");
+            setNotification({ message: 'PPT Upload Failed!', type: 'error' });
         } finally {
             setIsUploading(false);
         }
@@ -133,16 +160,7 @@ function Admin() {
     const handleExportMembers = () => {
         const flatData = [];
         teams.forEach(team => {
-            const teamInfo = {
-                // Common team-level info
-                
-                
-                
-            };
-    
-            // Add lead info
             flatData.push({
-                ...teamInfo,
                 "Team Name": team.teamname,
                 "Payment Status": team.verified ? "Yes" : "No",
                 "Member Name": team.name,
@@ -155,11 +173,10 @@ function Admin() {
                 "Transaction ID": team.transtationId,
                 "Payment Image URL": team.imgUrl,
             });
-    
-            // Add member info
             team.teamMembers.forEach(member => {
                 flatData.push({
-                    ...teamInfo,
+                    "Team Name": team.teamname,
+                    "Payment Status": team.verified ? "Yes" : "No",
                     "Member Name": member.name,
                     "Role": "Member",
                     "Registration Number": member.registrationNumber,
@@ -242,23 +259,19 @@ function Admin() {
     };
 
     const handleResolveIssue = async (teamId, issueId) => {
+        const originalIssues = [...teamsWithIssues];
         setTeamsWithIssues(prevTeams =>
             prevTeams
-                .map(team => {
-                    if (team._id === teamId) {
-                        return { ...team, issues: team.issues.filter(issue => issue._id !== issueId) };
-                    }
-                    return team;
-                })
+                .map(team => team._id === teamId ? { ...team, issues: team.issues.filter(issue => issue._id !== issueId) } : team)
                 .filter(team => team.issues.length > 0)
         );
-
         try {
             await axios.post(`${api}/event/issue/resolve/${teamId}/${issueId}`);
+            setNotification({ message: 'Issue Resolved!', type: 'success' });
         } catch (error) {
             console.error("Error resolving issue:", error);
-            alert("Failed to resolve the issue. Reverting changes.");
-            fetchIssues();
+            setTeamsWithIssues(originalIssues);
+            setNotification({ message: 'Failed to Resolve Issue!', type: 'error' });
         }
     };
 
@@ -270,6 +283,7 @@ function Admin() {
         setIsSendingReminder(true);
         setReminderError("");
         socket.emit('admin:sendReminder', { message: reminderText.trim() });
+        setNotification({ message: 'Reminder Sent!', type: 'success' });
         setTimeout(() => {
             setIsSendingReminder(false);
             setReminderText("");
@@ -280,21 +294,23 @@ function Admin() {
         try {
             await axios.post(`${api}/event/event/verify/${teamId}`);
             setTeams(prev => prev.map(t => t._id === teamId ? { ...t, verified: true } : t));
+            setNotification({ message: 'Team Verified & Email Sent!', type: 'success' });
         } catch (error) {
             console.error("Failed to verify team:", error);
-            alert("Verification failed. Please try again.");
+            setNotification({ message: 'Verification Failed!', type: 'error' });
         }
     };
-
+    
     const handleDomainChange = async (teamId, newDomain) => {
         const originalTeams = [...teams];
         setTeams(prev => prev.map(t => t._id === teamId ? { ...t, Domain: newDomain } : t));
         try {
-            await axios.post(`${api}/admin/updateDomain`, { teamId, domain: newDomain });
+            await axios.post(`${api}/event/updateDomain`, { teamId, domain: newDomain });
+            setNotification({ message: 'Domain Updated!', type: 'success' });
         } catch (error) {
             console.error("Failed to update domain:", error);
-            alert("Error: Could not update domain.");
             setTeams(originalTeams);
+            setNotification({ message: 'Failed to Update Domain!', type: 'error' });
         }
     };
 
@@ -336,10 +352,11 @@ function Admin() {
 
             pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
             pdf.save(`${team.teamname}_Credentials.pdf`);
+            setNotification({ message: 'Credentials Exported!', type: 'success' });
 
         } catch (error) {
             console.error("Error generating PDF:", error);
-            alert("Failed to generate PDF. Please check the console for the specific error.");
+            setNotification({ message: 'Export Failed!', type: 'error' });
         } finally {
             setIsGeneratingPass(false);
         }
@@ -390,6 +407,13 @@ function Admin() {
 
     return (
         <div className="min-h-screen p-6" style={{ backgroundImage: `url('https://images6.alphacoders.com/605/605598.jpg')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
+            {notification.message && (
+                <Notification 
+                    message={notification.message} 
+                    type={notification.type}
+                    onClear={() => setNotification({ message: '', type: '' })}
+                />
+            )}
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
             <div className="relative z-10 max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-10">
@@ -414,8 +438,8 @@ function Admin() {
                         Verify Payments
                     </button>
                     <button onClick={handleExportMembers} className="w-full md:w-auto flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg hover:scale-105 transition-transform">
-    Export Members (CSV)
-</button>
+                        Export Members (CSV)
+                    </button>
                     <button onClick={() => setShowDomainModal(true)} className="w-full md:w-auto flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-8 rounded-lg transition-colors">
                         Manage Domains
                     </button>
@@ -471,7 +495,6 @@ function Admin() {
                     </div>
                 </div>
 
-                {/* --- NEW: PPT Template Broadcast Section --- */}
                 <div className="bg-gray-800/50 backdrop-blur-md rounded-xl p-6 mb-10 border border-purple-500/30">
                     <h2 className="text-2xl font-naruto text-purple-400 text-center mb-4">Broadcast PPT Template</h2>
                     <div className="flex flex-col gap-4">
@@ -531,54 +554,54 @@ function Admin() {
                 )}
 
                 {showVerificationModal && (
-                            <div className="fixed inset-0 bg-black/80 flex justify-center items-center z-50 p-4">
-                                <div className="bg-gray-900 border-2 border-orange-500/50 rounded-xl shadow-lg p-6 w-full max-w-4xl flex flex-col">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h2 className="text-2xl text-orange-400 font-naruto">Payment Verification</h2>
-                                        <button className="text-gray-400 hover:text-white text-3xl" onClick={() => setShowVerificationModal(false)}>&times;</button>
-                                    </div>
-                                    <div className="flex border-b border-gray-700 mb-4">
-                                        <button onClick={() => setVerificationTab('pending')} className={`py-2 px-4 font-semibold ${verificationTab === 'pending' ? 'text-orange-400 border-b-2 border-orange-400' : 'text-gray-400'}`}>Pending ({notVerifiedCount})</button>
-                                        <button onClick={() => setVerificationTab('verified')} className={`py-2 px-4 font-semibold ${verificationTab === 'verified' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-400'}`}>Verified ({verifiedCount})</button>
-                                    </div>
-                                    <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
-                                        {teams.filter(t => verificationTab === 'pending' ? !t.verified : t.verified).map((team) => (
-                                            <div key={team._id} className="bg-gray-800 rounded-lg p-4 shadow">
-                                                <div className="flex justify-between items-center">
-                                                    <div>
-                                                        <p className="text-white font-semibold">{team.teamname}</p>
-                                                        <p className="text-gray-400 text-sm">{team.email}</p>
-                                                    </div>
-                                                    <div className="flex items-center gap-4">
-                                                        <button onClick={() => toggleTeamDetails(team._id)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded font-semibold">{expandedTeam === team._id ? 'Collapse' : 'Expand'}</button>
-                                                        {verificationTab === 'pending' && (
-                                                            <button onClick={() => handleVerifyTeam(team._id)} className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow">Verify</button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                {expandedTeam === team._id && (
-                                                    <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                        <div>
-                                                            <h4 className="font-bold text-orange-400 mb-2">Team Members:</h4>
-                                                            <ul className="list-disc list-inside text-gray-300 space-y-1">
-                                                                <li>{team.name} (Leader)</li>
-                                                                {team.teamMembers.map((member, index) => (<li key={index}>{member.name}</li>))}
-                                                            </ul>
-                                                            <h4 className="font-bold text-orange-400 mt-4 mb-2">Payment Details:</h4>
-                                                            <p className="text-gray-300"><span className="font-semibold">UPI ID:</span> {team.upiId}</p>
-                                                            <p className="text-gray-300"><span className="font-semibold">Transaction ID:</span> {team.transtationId}</p>
-                                                        </div>
-                                                        <div>
-                                                            <h4 className="font-bold text-orange-400 mb-2">Payment Proof:</h4>
-                                                            <a href={team.imgUrl} target="_blank" rel="noopener noreferrer"><img src={team.imgUrl} alt="Payment Proof" className="rounded-lg w-full h-auto max-h-60 object-contain cursor-pointer"/></a>
-                                                        </div>
-                                                    </div>
+                    <div className="fixed inset-0 bg-black/80 flex justify-center items-center z-50 p-4">
+                        <div className="bg-gray-900 border-2 border-orange-500/50 rounded-xl shadow-lg p-6 w-full max-w-4xl flex flex-col">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-2xl text-orange-400 font-naruto">Payment Verification</h2>
+                                <button className="text-gray-400 hover:text-white text-3xl" onClick={() => setShowVerificationModal(false)}>&times;</button>
+                            </div>
+                            <div className="flex border-b border-gray-700 mb-4">
+                                <button onClick={() => setVerificationTab('pending')} className={`py-2 px-4 font-semibold ${verificationTab === 'pending' ? 'text-orange-400 border-b-2 border-orange-400' : 'text-gray-400'}`}>Pending ({notVerifiedCount})</button>
+                                <button onClick={() => setVerificationTab('verified')} className={`py-2 px-4 font-semibold ${verificationTab === 'verified' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-400'}`}>Verified ({verifiedCount})</button>
+                            </div>
+                            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                                {teams.filter(t => verificationTab === 'pending' ? !t.verified : t.verified).map((team) => (
+                                    <div key={team._id} className="bg-gray-800 rounded-lg p-4 shadow">
+                                        <div className="flex justify-between items-center">
+                                            <div>
+                                                <p className="text-white font-semibold">{team.teamname}</p>
+                                                <p className="text-gray-400 text-sm">{team.email}</p>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <button onClick={() => toggleTeamDetails(team._id)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded font-semibold">{expandedTeam === team._id ? 'Collapse' : 'Expand'}</button>
+                                                {verificationTab === 'pending' && (
+                                                    <button onClick={() => handleVerifyTeam(team._id)} className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow">Verify</button>
                                                 )}
                                             </div>
-                                        ))}
+                                        </div>
+                                        {expandedTeam === team._id && (
+                                            <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div>
+                                                    <h4 className="font-bold text-orange-400 mb-2">Team Members:</h4>
+                                                    <ul className="list-disc list-inside text-gray-300 space-y-1">
+                                                        <li>{team.name} (Leader)</li>
+                                                        {team.teamMembers.map((member, index) => (<li key={index}>{member.name}</li>))}
+                                                    </ul>
+                                                    <h4 className="font-bold text-orange-400 mt-4 mb-2">Payment Details:</h4>
+                                                    <p className="text-gray-300"><span className="font-semibold">UPI ID:</span> {team.upiId}</p>
+                                                    <p className="text-gray-300"><span className="font-semibold">Transaction ID:</span> {team.transtationId}</p>
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-orange-400 mb-2">Payment Proof:</h4>
+                                                    <a href={team.imgUrl} target="_blank" rel="noopener noreferrer"><img src={team.imgUrl} alt="Payment Proof" className="rounded-lg w-full h-auto max-h-60 object-contain cursor-pointer"/></a>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
+                                ))}
                             </div>
+                        </div>
+                    </div>
                 )}
 
                 {showDomainModal && (
