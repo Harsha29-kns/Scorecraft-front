@@ -455,8 +455,11 @@ function Admin() {
                     <button onClick={() => navigate("/all-teams")} className="w-full md:w-auto flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-8 rounded-lg transition-colors">
                         Assign Sectors
                     </button>
-                    <button onClick={() => { const futureTime = new Date(Date.now() + 10 * 60 * 1000).toISOString(); socket.emit("domainOpen", { open: futureTime }); }} className="w-full md:w-auto flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg transition-colors">
-                        Open Domain
+                    <button
+                    onClick={() => { window.location.href = "/admin-controls"; }}
+                    className="w-full md:w-auto flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg transition-colors"
+                    >
+                    Domain Controls
                     </button>
                     <button
                         className="w-full md:w-auto flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 px-8 rounded-lg transition-colors"

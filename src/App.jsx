@@ -10,7 +10,7 @@ import Marks from './Marks';
 import Leaderboard from './LeaderBoard';
 import AttdDetail from './AttdDetail';
 import Instructions from "./Instructions";
-
+import AdminControls from './AdminControls'
 import Pics from './pics';
 import DomainStats from './DomainStats';
 
@@ -32,6 +32,7 @@ function App() {
         <Route path='/photos'  element={<Pics/>}/>
         <Route path='/domaindata' element={<DomainStats/>}/>
         <Route path='/instructions' element={<Instructions/>}/>
+        <Route path='/admin-controls' element={<AdminControls />} />
       </Routes>           
     );
 }
