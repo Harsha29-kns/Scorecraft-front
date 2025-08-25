@@ -41,7 +41,7 @@ const customModalStyles = {
     },
 };
 
-// --- MODAL COMPONENTS ---
+
 
 const LeaderboardModal = ({ isOpen, onClose, leaderboard }) => (
     <Modal
@@ -1152,7 +1152,7 @@ function TeamPanel() {
             <div className="relative z-10 pt-32 px-2">
                 {loading ? (
                     <div className="w-full h-[80vh] flex flex-col justify-center items-center">
-                        <div className="animate-pulse"><img src={lod} className="w-32 h-32 sm:w-48 sm:h-48 rounded-full" /></div>
+                        <div className="animate-pulse"><img src={"https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2w4bHI1dTUwMmg4cnJneW1ieW5vc3ZzYXU0bXVwY2o1YWJlMjBkdSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/u3BZwClQTqY2Q/giphy.gif"} className="w-32 h-32 sm:w-48 sm:h-48 rounded-full" /></div>
                         <p className="text-center text-xl sm:text-2xl mt-6 font-bold font-naruto text-orange-400">Loading Mission Details...</p>
                     </div>
                 ) : (
@@ -1424,7 +1424,7 @@ function TeamPanel() {
 
                         </div>
                     ) : (
-                        <p className="text-center text-xl mt-10">Failed to load team data. Please try again later.</p>
+                        <p className="text-center text-xl mt-10">Failed to load team data. Please refresh the page and try again.</p>
                     )
                 )}
                 <footer className="w-full bg-gray-900/50 backdrop-blur-sm border-t border-orange-500/20 mt-12 py-8">

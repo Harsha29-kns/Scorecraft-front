@@ -1,15 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import axios from 'axios'; // --- NEW: Import axios
-import api from './api'; // --- NEW: Import your api config
+import { io } from "socket.io-client"; 
+import api from './api';
 
 // --- Constants ---
 const narutoBgImage = "https://images6.alphacoders.com/605/605598.jpg";
 const narutoGifUrl = "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMHpqeHMwY3dyYmt1amF0MDF0NzNjY2R5M2Jha21rMHRnNWN6OGVhZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xVxio2tNLAM5q/giphy.gif";
 const narutoMusicUrl = "/music/naruto-reg.mp3";
 
-// --- MusicPlayer Component (Unchanged) ---
+// --- Socket.IO Connection ---
+const socket = io(api); 
+
+// --- Music Player Component ---
 const MusicPlayer = ({ audioUrl }) => {
   const [isPlaying, setIsPlaying] = useState(true);
   const audioRef = useRef(null);
@@ -58,54 +61,55 @@ const MusicPlayer = ({ audioUrl }) => {
 };
 
 
-// --- Main Form Component ---
+
 function Form() {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    registrationNumber: '',
-    teamname: '',
-    type: '',
-    room: '',
-    year: '',
-    department: '',
-    section: '',
-    teamMembers: Array(4).fill({
-        name: '',
-        registrationNumber: '',
-        type: '',
-        room: '',
-        year: '',
-        department: '',
-        section: ''
-    })
+    name: '', email: '', registrationNumber: '', teamname: '', type: '', room: '', year: '', department: '', section: '',
+    teamMembers: Array(4).fill({ name: '', registrationNumber: '', type: '', room: '', year: '', department: '', section: '' })
   });
   const [errors, setErrors] = useState({});
   const nav = useNavigate();
   
-  // --- NEW: State for registration capacity ---
-  const [isClosed, setIsClosed] = useState(false);
+  
+  const [isRegClosed, setIsRegClosed] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("Connecting to server...");
 
+  
   useEffect(() => {
+    
+    socket.on('registrationStatus', (status) => {
+        if (status.isClosed) {
+            setIsRegClosed(true);
+                        setStatusMessage(
+                <div>
+                    <p>The registration slots are all filled.</p>
+                    <p className="text-sm mt-1 opacity-90">
+                        If any slots are extended, the organizer will inform you.
+                    </p>
+                    <div className="mt-3 text-xs text-left w-full">
+                       <p>- Thank you</p>
+                       <p>- Scorecraft Team</p>
+                    </div>
+                </div>
+            );
+        } else {
+            setIsRegClosed(false);
+            setStatusMessage(`${status.count} out of ${status.limit} spots filled. Registrations are open!`);
+        }
+    });
+
+    // Request the initial status when the form loads
+    socket.emit('check');
+
     const savedData = localStorage.getItem('formData');
     if (savedData) {
       setFormData(JSON.parse(savedData));
     }
-
-    // --- NEW: Fetch team count on component mount ---
-    const checkRegistrationStatus = async () => {
-        try {
-            const response = await axios.get(`${api}/event/teams/count`);
-            if (response.data.count >= 60) {
-                setIsClosed(true);
-            }
-        } catch (error) {
-            console.error("Failed to fetch team count:", error);
-            // Optionally handle the error, e.g., show a message
-        }
+    
+    // Cleanup the listener when the component unmounts
+    return () => {
+        socket.off('registrationStatus');
     };
-    checkRegistrationStatus();
-
   }, []);
 
   useEffect(() => {
@@ -164,6 +168,11 @@ function Form() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Safeguard to prevent submission if the form is closed
+    if (isRegClosed) {
+      setErrors({ form: "Sorry, registrations are currently closed." });
+      return;
+    }
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -174,36 +183,9 @@ function Form() {
     }
   };
 
-  const inputStyles = "w-full h-12 rounded-lg p-3 bg-gray-800/60 border-2 border-orange-500/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all";
+  const inputStyles = "w-full h-12 rounded-lg p-3 bg-gray-800/60 border-2 border-orange-500/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all disabled:bg-gray-700/50 disabled:cursor-not-allowed disabled:opacity-60";
   const labelStyles = "block mb-2 text-lg font-medium text-orange-300";
   const errorStyles = "text-red-400 text-sm mt-1";
-
-  // --- NEW: Conditional rendering for closed state ---
-  if (isClosed) {
-    return (
-        <div 
-            className="home relative w-full min-h-screen p-4 sm:p-8 flex items-center justify-center text-center"
-            style={{ backgroundImage: `url('${narutoBgImage}')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}
-        >
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
-            <MusicPlayer audioUrl={narutoMusicUrl} />
-            <motion.div 
-                className="relative z-10 text-white bg-gray-900/80 border-2 border-orange-500/50 rounded-2xl shadow-2xl p-8 max-w-lg w-full"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-            >
-                <h1 className="text-4xl font-naruto text-orange-400">Registrations Are Closed</h1>
-                <p className="mt-4 text-lg text-gray-300">
-                    The 60-team capacity has been reached. Thank you for your interest!
-                </p>
-                <p className="mt-2 text-gray-400">
-                    If you believe this is a mistake, please contact the event organizers.
-                </p>
-            </motion.div>
-        </div>
-    );
-  }
 
   return (
     <div
@@ -239,36 +221,49 @@ function Form() {
             onSubmit={handleSubmit}
             noValidate
           >
-            <h1 className="font-naruto text-4xl md:text-5xl font-bold mb-8 text-center text-orange-500">
+            <h1 className="font-naruto text-4xl md:text-5xl font-bold mb-4 text-center text-orange-500">
               Register Your Ninja Team
             </h1>
+            
+            {/* --- 5. DISPLAY THE LIVE STATUS BANNER --- */}
+            <div style={{
+                textAlign: 'center', padding: '0.75rem', marginBottom: '2rem', borderRadius: '8px',
+                fontWeight: 'bold', fontSize: '1.1rem',
+                backgroundColor: isRegClosed ? '#7f1d1d' : '#166534',
+                border: `1px solid ${isRegClosed ? '#991b1b' : '#14532d'}`
+            }}>
+                {statusMessage}
+            </div>
+            
+            {errors.form && <p className={`text-center mb-4 ${errorStyles}`}>{errors.form}</p>}
 
             <h2 className="font-naruto text-2xl text-orange-400 border-b-2 border-orange-500/30 pb-2 mb-6">Team Leader's Scroll</h2>
 
+            {/* --- 6. ADD 'disabled' PROP TO ALL INPUTS AND SELECTS --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
               <div>
                 <label className={labelStyles} htmlFor="teamname">Team Name / Clan</label>
-                <input id="teamname" name="teamname" value={formData.teamname} onChange={handleChange} placeholder="e.g., Team 7" className={inputStyles} />
+                <input id="teamname" name="teamname" value={formData.teamname} onChange={handleChange} placeholder="e.g., Team 7" className={inputStyles} disabled={isRegClosed} />
                 {errors.teamname && <p className={errorStyles}>{errors.teamname}</p>}
               </div>
               <div>
                 <label className={labelStyles} htmlFor="name">Lead Shinobi Name</label>
-                <input id="name" name="name" value={formData.name} onChange={handleChange} placeholder="e.g., Naruto Uzumaki" className={inputStyles} />
+                <input id="name" name="name" value={formData.name} onChange={handleChange} placeholder="e.g., Naruto Uzumaki" className={inputStyles} disabled={isRegClosed} />
                 {errors.name && <p className={errorStyles}>{errors.name}</p>}
               </div>
               <div>
                 <label className={labelStyles} htmlFor="email">Lead's Email</label>
-                <input id="email" type="email" name="email" value={formData.email} onChange={handleChange} placeholder="shinobi@konoha.com" className={inputStyles} />
+                <input id="email" type="email" name="email" value={formData.email} onChange={handleChange} placeholder="shinobi@konoha.com" className={inputStyles} disabled={isRegClosed} />
                 {errors.email && <p className={errorStyles}>{errors.email}</p>}
               </div>
               <div>
                 <label className={labelStyles} htmlFor="registrationNumber">Registration No.</label>
-                <input id="registrationNumber" name="registrationNumber" value={formData.registrationNumber} onChange={handleChange} placeholder="Your Ninja ID" className={inputStyles} />
+                <input id="registrationNumber" name="registrationNumber" value={formData.registrationNumber} onChange={handleChange} placeholder="Your Ninja ID" className={inputStyles} disabled={isRegClosed} />
                 {errors.registrationNumber && <p className={errorStyles}>{errors.registrationNumber}</p>}
               </div>
               <div>
                 <label className={labelStyles} htmlFor="year">Year</label>
-                <select id="year" name="year" value={formData.year} onChange={handleChange} className={inputStyles}>
+                <select id="year" name="year" value={formData.year} onChange={handleChange} className={inputStyles} disabled={isRegClosed}>
                     <option value="">Select Year</option>
                     <option value="2">2nd Year</option>
                     <option value="3">3rd Year</option>
@@ -278,7 +273,7 @@ function Form() {
               </div>
                <div>
                 <label className={labelStyles} htmlFor="department">Department</label>
-                <select id="department" name="department" value={formData.department} onChange={handleChange} className={inputStyles}>
+                <select id="department" name="department" value={formData.department} onChange={handleChange} className={inputStyles} disabled={isRegClosed}>
                     <option value="">Select Department</option>
                     <option value="CSE">CSE</option>
                     <option value="IT">IT</option>
@@ -290,12 +285,12 @@ function Form() {
               </div>
               <div>
                 <label className={labelStyles} htmlFor="section">Section</label>
-                <input id="section" name="section" value={formData.section} onChange={handleChange} placeholder="e.g., A" className={inputStyles} />
+                <input id="section" name="section" value={formData.section} onChange={handleChange} placeholder="e.g., A" className={inputStyles} disabled={isRegClosed} />
                 {errors.section && <p className={errorStyles}>{errors.section}</p>}
               </div>
               <div>
                 <label className={labelStyles} htmlFor="type">Type (Hostel/Day)</label>
-                <select id="type" name="type" value={formData.type} onChange={handleChange} className={inputStyles}>
+                <select id="type" name="type" value={formData.type} onChange={handleChange} className={inputStyles} disabled={isRegClosed}>
                   <option value="">Select Type</option>
                   <option value="Day's Scholar">Day's Scholar</option>
                   <option value="Mh-1">Mh-1</option><option value="Mh-2">Mh-2</option><option value="Mh-3">Mh-3</option>
@@ -308,7 +303,7 @@ function Form() {
               {formData.type !== "Day's Scholar" && (
                 <div>
                   <label className={labelStyles} htmlFor="room">Room Number</label>
-                  <input id="room" name="room" value={formData.room} onChange={handleChange} placeholder="Barracks Number" className={inputStyles} />
+                  <input id="room" name="room" value={formData.room} onChange={handleChange} placeholder="Barracks Number" className={inputStyles} disabled={isRegClosed} />
                   {errors.room && <p className={errorStyles}>{errors.room}</p>}
                 </div>
               )}
@@ -322,17 +317,17 @@ function Form() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className={labelStyles} htmlFor={`memberName${index}`}>Shinobi Name</label>
-                    <input id={`memberName${index}`} name="name" value={member.name} onChange={(e) => handleTeamMemberChange(index, e)} placeholder="Member's Name" className={inputStyles} />
+                    <input id={`memberName${index}`} name="name" value={member.name} onChange={(e) => handleTeamMemberChange(index, e)} placeholder="Member's Name" className={inputStyles} disabled={isRegClosed} />
                     {errors[`teamMember${index}Name`] && <p className={errorStyles}>{errors[`teamMember${index}Name`]}</p>}
                   </div>
                   <div>
                     <label className={labelStyles} htmlFor={`memberReg${index}`}>Registration No.</label>
-                    <input id={`memberReg${index}`} name="registrationNumber" value={member.registrationNumber} onChange={(e) => handleTeamMemberChange(index, e)} placeholder="Member's Ninja ID" className={inputStyles} />
+                    <input id={`memberReg${index}`} name="registrationNumber" value={member.registrationNumber} onChange={(e) => handleTeamMemberChange(index, e)} placeholder="Member's Ninja ID" className={inputStyles} disabled={isRegClosed} />
                     {errors[`teamMember${index}RegistrationNumber`] && <p className={errorStyles}>{errors[`teamMember${index}RegistrationNumber`]}</p>}
                   </div>
                    <div>
                     <label className={labelStyles} htmlFor={`memberYear${index}`}>Year</label>
-                    <select id={`memberYear${index}`} name="year" value={member.year} onChange={(e) => handleTeamMemberChange(index, e)} className={inputStyles}>
+                    <select id={`memberYear${index}`} name="year" value={member.year} onChange={(e) => handleTeamMemberChange(index, e)} className={inputStyles} disabled={isRegClosed}>
                         <option value="">Select Year</option>
                         <option value="2">2nd Year</option>
                         <option value="3">3rd Year</option>
@@ -342,7 +337,7 @@ function Form() {
                   </div>
                   <div>
                     <label className={labelStyles} htmlFor={`memberDepartment${index}`}>Department</label>
-                    <select id={`memberDepartment${index}`} name="department" value={member.department} onChange={(e) => handleTeamMemberChange(index, e)} className={inputStyles}>
+                    <select id={`memberDepartment${index}`} name="department" value={member.department} onChange={(e) => handleTeamMemberChange(index, e)} className={inputStyles} disabled={isRegClosed}>
                         <option value="">Select Department</option>
                         <option value="CSE">CSE</option>
                         <option value="IT">IT</option>
@@ -354,12 +349,12 @@ function Form() {
                   </div>
                   <div>
                     <label className={labelStyles} htmlFor={`memberSection${index}`}>Section</label>
-                    <input id={`memberSection${index}`} name="section" value={member.section} onChange={(e) => handleTeamMemberChange(index, e)} placeholder="e.g., B" className={inputStyles} />
+                    <input id={`memberSection${index}`} name="section" value={member.section} onChange={(e) => handleTeamMemberChange(index, e)} placeholder="e.g., B" className={inputStyles} disabled={isRegClosed} />
                     {errors[`teamMember${index}Section`] && <p className={errorStyles}>{errors[`teamMember${index}Section`]}</p>}
                   </div>
                   <div>
                     <label className={labelStyles} htmlFor={`memberType${index}`}>Type</label>
-                    <select id={`memberType${index}`} name="type" value={member.type} onChange={(e) => handleTeamMemberChange(index, e)} className={inputStyles}>
+                    <select id={`memberType${index}`} name="type" value={member.type} onChange={(e) => handleTeamMemberChange(index, e)} className={inputStyles} disabled={isRegClosed}>
                       <option value="">Select Type</option>
                       <option value="Day's Scholar">Day's Scholar</option>
                       <option value="Mh-1">Mh-1</option><option value="Mh-2">Mh-2</option><option value="Mh-3">Mh-3</option>
@@ -372,7 +367,7 @@ function Form() {
                   {member.type !== "Day's Scholar" && (
                     <div>
                       <label className={labelStyles} htmlFor={`memberRoom${index}`}>Room Number</label>
-                      <input id={`memberRoom${index}`} name="room" value={member.room} onChange={(e) => handleTeamMemberChange(index, e)} placeholder="Barracks Number" className={inputStyles} />
+                      <input id={`memberRoom${index}`} name="room" value={member.room} onChange={(e) => handleTeamMemberChange(index, e)} placeholder="Barracks Number" className={inputStyles} disabled={isRegClosed} />
                       {errors[`teamMember${index}Room`] && <p className={errorStyles}>{errors[`teamMember${index}Room`]}</p>}
                     </div>
                   )}
@@ -382,11 +377,12 @@ function Form() {
 
             <motion.button
               type="submit"
-              className="w-full h-14 mt-6 rounded-lg bg-orange-500 text-white text-xl font-bold border-2 border-orange-600 hover:bg-orange-600 transition-all duration-300"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.98 }}
+              className="w-full h-14 mt-6 rounded-lg bg-orange-500 text-white text-xl font-bold border-2 border-orange-600 hover:bg-orange-600 transition-all duration-300 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:text-gray-400"
+              whileHover={{ scale: isRegClosed ? 1 : 1.05 }}
+              whileTap={{ scale: isRegClosed ? 1 : 0.98 }}
+              disabled={isRegClosed}
             >
-              Proceed to Next Mission
+              {isRegClosed ? 'REGISTRATIONS CLOSED' : 'Proceed to Next Mission'}
             </motion.button>
           </form>
         </motion.div>

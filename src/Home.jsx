@@ -3,147 +3,197 @@ import { useNavigate } from 'react-router-dom';
 import kalasalingam from "/public/kalasalingam.png";
 import score from "/public/scorecraft.jpg";
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-import api from './api';
 import { io } from 'socket.io-client';
+import api from './api';
 
 const narutoBgImage = "https://images.alphacoders.com/605/605592.png";
+const socket = io(api);
 
 const narutoFontStyle = {
     fontFamily: "'Ninja Naruto', sans-serif",
 };
 
-// --- NEW: Helper component for animating the team count number ---
+// --- Animated Counter ---
 function AnimatedCounter({ to }) {
-  const [displayValue, setDisplayValue] = useState(0);
-
-  useEffect(() => {
-    const controls = animate(0, to, {
-      duration: 1.5,
-      ease: "easeOut",
-      onUpdate: (latest) => {
-        setDisplayValue(Math.round(latest));
-      },
-    });
-    // Cleanup function to stop the animation if the component unmounts
-    return () => controls.stop();
-  }, [to]); // Rerun animation if the `to` value changes
-
-  return <span>{displayValue}</span>;
+    const [displayValue, setDisplayValue] = useState(0);
+    useEffect(() => {
+        const controls = animate(displayValue, to, {
+            duration: 1,
+            ease: "easeOut",
+            onUpdate: (latest) => setDisplayValue(Math.round(latest)),
+        });
+        return () => controls.stop();
+    }, [to]);
+    return <span>{displayValue}</span>;
 }
 
+// --- Countdown Timer ---
+function CountdownTimer({ timeLeft }) {
+    return (
+        <div className="text-center">
+            <h3 className="text-2xl text-orange-400 mb-4 drop-shadow-[0_0_8px_rgba(255,140,0,0.9)]" style={narutoFontStyle}>
+                Registration Opens In
+            </h3>
+            <div className="flex justify-center gap-4 text-white">
+                {Object.entries(timeLeft).map(([label, value], idx) => (
+                    <div key={idx} className="flex flex-col items-center p-3 bg-black/40 rounded-lg min-w-[70px] shadow-lg">
+                        <span className="text-5xl font-extrabold text-orange-400 drop-shadow-[0_0_10px_rgba(255,140,0,0.9)]">
+                            {String(value).padStart(2, '0')}
+                        </span>
+                        <span className="text-xs uppercase tracking-widest">{label}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
 
+// --- Main Home Component ---
 function Home() {
     const nav = useNavigate();
-    const [teamCount, setTeamCount] = useState(null);
+    const [teamCount, setTeamCount] = useState(0);
+    const [regLimit, setRegLimit] = useState(60);
+    const [isRegClosed, setIsRegClosed] = useState(true);
+    const [regOpenTime, setRegOpenTime] = useState(null);
+    const [timeRemaining, setTimeRemaining] = useState(null);
 
     useEffect(() => {
-        const fetchTeamCount = async () => {
-            try {
-                const response = await axios.get(`${api}/event/teams/count`);
-                setTeamCount(response.data.count);
-            } catch (error) {
-                console.error("Failed to fetch team count:", error);
-            }
-        };
-        fetchTeamCount();
-
-        const socket = io(api);
-        socket.on('updateTeamCount', (newCount) => {
-            setTeamCount(newCount);
+        socket.on('registrationStatus', (status) => {
+            setTeamCount(status.count);
+            setRegLimit(status.limit);
+            setIsRegClosed(status.isClosed);
+            setRegOpenTime(status.openTime);
         });
-
-        return () => {
-            socket.disconnect();
-        };
+        socket.emit('check');
+        return () => socket.off('registrationStatus');
     }, []);
 
-    const registrationsAreOpen = teamCount !== null && teamCount < 60;
+    useEffect(() => {
+        if (!regOpenTime) {
+            setTimeRemaining(null);
+            return;
+        }
+        const intervalId = setInterval(() => {
+            const difference = new Date(regOpenTime) - new Date();
+            if (difference > 0) {
+                setTimeRemaining({
+                    days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+                    hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+                    minutes: Math.floor((difference / 1000 / 60) % 60),
+                    seconds: Math.floor((difference / 1000) % 60),
+                });
+            } else {
+                setTimeRemaining(null);
+                setRegOpenTime(null);
+                clearInterval(intervalId);
+                socket.emit('check');
+            }
+        }, 1000);
+        return () => clearInterval(intervalId);
+    }, [regOpenTime]);
+
+    const percentage = regLimit > 0 ? (teamCount / regLimit) * 100 : 0;
 
     return (
         <div 
             className="home relative w-full min-h-screen py-12 px-4 overflow-y-auto"
-            style={{
-                backgroundImage: `url('${narutoBgImage}')`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundAttachment: 'fixed',
-            }}
+            style={{ backgroundImage: `url('${narutoBgImage}')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}
         >
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80 backdrop-blur-sm animate-pulse-slow"></div>
 
             <motion.div 
                 className="relative z-10 flex flex-col justify-start items-center w-full gap-12"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 1 }}
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}
             >
+                {/* Header Card */}
                 <motion.div 
                     className="p-8 rounded-2xl bg-gray-900/70 border-2 border-orange-500/50 shadow-2xl max-w-3xl w-full text-center backdrop-blur-md"
-                    initial={{ y: -50, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.7, type: "spring" }}
+                    initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.7, type: "spring" }}
                 >
+                    {/* Floating Logos */}
                     <div className="w-full flex justify-center items-center gap-6 mb-6">
-                        <img src={kalasalingam} className="w-20 h-20 object-contain bg-white/80 rounded-full p-1" alt="Kalasalingam Logo" />
-                        <img src={score} className="w-20 h-20 object-cover rounded-full border-2 border-orange-400" alt="Score Logo" />
+                        <motion.img
+                            src={kalasalingam}
+                            className="w-20 h-20 object-contain bg-white/80 rounded-full p-1 shadow-lg"
+                            alt="Kalasalingam Logo"
+                            animate={{ y: [0, -10, 0] }}
+                            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                        />
+                        <motion.img
+                            src={score}
+                            className="w-20 h-20 object-cover rounded-full border-2 border-orange-400 shadow-lg"
+                            alt="Score Logo"
+                            animate={{ y: [0, 10, 0] }}
+                            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                        />
                     </div>
+
                     <h2 className="text-2xl mt-2 text-gray-300 tracking-wider">Scorecraft KARE Presents</h2>
-                    <h1 
-                        className="text-6xl md:text-7xl font-black text-orange-500 my-4 tracking-widest"
-                        style={narutoFontStyle}
-                    >
+                    <h1 className="text-6xl md:text-7xl font-black text-orange-500 my-4 tracking-widest drop-shadow-[0_0_15px_rgba(255,140,0,0.8)]" style={narutoFontStyle}>
                         HackForge
                     </h1>
 
-                    {/* --- NEW & IMPROVED: Registration Status UI --- */}
+                    {/* Countdown or Slots */}
                     <div className="mt-8 w-full max-w-md mx-auto">
-                        <div className="text-center mb-4">
-                            <h3 className="text-2xl text-orange-400" style={narutoFontStyle}>Available Squad Slots</h3>
-                        </div>
-                        <div className="relative pt-1">
-                            <div className="flex mb-2 items-center justify-between text-gray-300">
-                                <div>
-                                    <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full bg-orange-500 text-white">
-                                        {teamCount !== null ? `${Math.round((teamCount / 60) * 100)}% Full` : 'Loading...'}
-                                    </span>
+                        {timeRemaining ? (
+                            <CountdownTimer timeLeft={timeRemaining} />
+                        ) : (
+                            <>
+                                <div className="text-center mb-4">
+                                    <h3 className="text-2xl text-orange-400 drop-shadow-[0_0_10px_rgba(255,140,0,0.9)]" style={narutoFontStyle}>Available Squad Slots</h3>
                                 </div>
-                                <div className="text-right">
-                                    <span className="text-lg font-bold text-white">
-                                        {teamCount !== null ? <AnimatedCounter to={teamCount} /> : '...'} / 60
-                                    </span>
+                                <div className="relative pt-1">
+                                    <div className="flex mb-2 items-center justify-between text-gray-300">
+                                        <div><span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full bg-orange-500 text-white shadow-md">{`${Math.round(percentage)}% Full`}</span></div>
+                                        <div className="text-right"><span className="text-lg font-bold text-white"><AnimatedCounter to={teamCount} /> / {regLimit}</span></div>
+                                    </div>
+                                    <div className="overflow-hidden h-4 text-xs flex rounded-full bg-gray-700 border-2 border-gray-600">
+                                        <motion.div 
+                                            className="h-4 rounded-full bg-gradient-to-r from-orange-400 via-red-500 to-yellow-400 shadow-[0_0_10px_rgba(255,140,0,0.7)]"
+                                            initial={{ width: '0%' }} animate={{ width: `${percentage}%` }} transition={{ duration: 1.5, ease: "easeInOut" }}
+                                        ></motion.div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="overflow-hidden h-4 text-xs flex rounded-full bg-gray-700 border-2 border-gray-600">
-                                <motion.div 
-                                    className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-orange-400 to-orange-600"
-                                    initial={{ width: '0%' }}
-                                    animate={{ width: teamCount !== null ? `${(teamCount / 60) * 100}%` : '0%' }}
-                                    transition={{ duration: 1.5, ease: "easeInOut" }}
-                                >
-                                </motion.div>
-                            </div>
-                        </div>
+                            </>
+                        )}
                     </div>
-
-                    <motion.button 
-                        className="mt-10 bg-orange-500 text-white border-2 border-orange-600 py-3 px-8 rounded-lg shadow-lg text-lg font-bold hover:bg-orange-600 hover:shadow-orange-400/50 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
-                        whileHover={{ scale: registrationsAreOpen ? 1.1 : 1, y: -5 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => nav("/registration")}
-                        disabled={!registrationsAreOpen}
-                    >
-                        {registrationsAreOpen ? "Register Now, Believe It!" : "Registrations Are Closed"}
-                    </motion.button>
                 </motion.div>
 
+                {/* Register Button or Status */}
+                <div className="mt-10 h-14 flex items-center justify-center">
+                    {timeRemaining ? (
+                        <p className="text-xl text-center text-cyan-300 font-semibold drop-shadow-[0_0_10px_rgba(0,255,255,0.7)]" style={narutoFontStyle}>
+                            Registrations will open soon...
+                        </p>
+                    ) : (
+                        <motion.button 
+                            className="relative bg-orange-500 text-white border-2 border-orange-600 py-3 px-8 rounded-lg shadow-lg text-lg font-bold overflow-hidden"
+                            whileHover={{ scale: !isRegClosed ? 1.1 : 1, rotate: !isRegClosed ? -2 : 0, y: !isRegClosed ? -3 : 0 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => nav("/registration")}
+                            disabled={isRegClosed}
+                        >
+                            <span className="relative z-10">
+                                {isRegClosed ? "Registrations Are Closed" : "Register Now, Believe It!"}
+                            </span>
+                            {!isRegClosed && (
+                                <motion.div
+                                    className="absolute inset-0 bg-orange-400/20"
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                                />
+                            )}
+                        </motion.button>
+                    )}
+                </div>
+
+                {/* About Section */}
                 <motion.div 
                     className="max-w-4xl p-8 bg-gray-900/70 text-white rounded-2xl shadow-xl border-2 border-orange-500/30 backdrop-blur-md"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3, duration: 1 }}
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 1 }}
                 >
-                    <h1 className="text-3xl font-extrabold mb-6 text-center text-orange-400" style={narutoFontStyle}>
+                    <h1 className="text-3xl font-extrabold mb-6 text-center text-orange-400 drop-shadow-[0_0_10px_rgba(255,140,0,0.9)]" style={narutoFontStyle}>
                         About the Event
                     </h1>
                     <div className="text-lg text-gray-200 space-y-4">
@@ -154,32 +204,48 @@ function Home() {
                             "Foster critical thinking, problem-solving, and creativity.",
                             "Become a legend and contribute to meaningful advancements in KARE."
                         ].map((text, idx) => (
-                            <div key={idx} className="flex items-start gap-3">
+                            <motion.div
+                                key={idx}
+                                className="flex items-start gap-3"
+                                initial={{ opacity: 0, x: -30 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                transition={{ delay: idx * 0.2 }}
+                                viewport={{ once: true }}
+                            >
                                 <span className="text-orange-400 font-bold text-xl">🍥</span>
                                 <p>{text}</p>
-                            </div>
+                            </motion.div>
                         ))}
                     </div>
                 </motion.div>
 
+                {/* Prizes Section */}
                 <motion.div 
                     className="mt-4 max-w-4xl p-8 bg-gray-900/70 text-white rounded-2xl shadow-xl border-2 border-orange-500/30 backdrop-blur-md"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.6, duration: 1 }}
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6, duration: 1 }}
                 >
-                    <h1 className="text-3xl font-extrabold mb-6 text-center text-orange-400" style={narutoFontStyle}>
+                    <h1 className="text-3xl font-extrabold mb-6 text-center text-orange-400 drop-shadow-[0_0_10px_rgba(255,140,0,0.9)]" style={narutoFontStyle}>
                         Prizes & Rewards
                     </h1>
                     <p className="text-lg text-gray-300 mb-6 text-center">Your hard work will be rewarded! Top shinobi will receive cash prizes, and all participants will earn scrolls of recognition.</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
-                        <div className="p-4 bg-yellow-400/80 rounded-lg font-bold text-gray-900 shadow-lg border-2 border-yellow-500">🏆 1st Prize: ₹7000 + 2 Credits</div>
-                        <div className="p-4 bg-gray-300/80 rounded-lg font-bold text-gray-800 shadow-md border-2 border-gray-400">🥈 2nd Prize: ₹5000 + 2 Credits</div>
-                        <div className="p-4 bg-orange-300/80 rounded-lg font-bold text-gray-800 shadow-md border-2 border-orange-400">🥉 3rd Prize: ₹3000 + 2 Credits</div>
-                        <div className="p-4 bg-blue-300/80 rounded-lg font-bold text-gray-800 shadow-md border-2 border-blue-400">📜 Certificate + 2 Credits for All Participants</div>
+                        {[ 
+                            { prize: "🏆 1st Prize: ₹7000 + 2 Credits", style: "bg-yellow-400/80 text-gray-900 border-yellow-500" },
+                            { prize: "🥈 2nd Prize: ₹5000 + 2 Credits", style: "bg-gray-300/80 text-gray-800 border-gray-400" },
+                            { prize: "🥉 3rd Prize: ₹3000 + 2 Credits", style: "bg-orange-300/80 text-gray-800 border-orange-400" },
+                            { prize: "📜 Certificate + 2 Credits for All Participants", style: "bg-blue-300/80 text-gray-800 border-blue-400" },
+                        ].map((item, idx) => (
+                            <motion.div
+                                key={idx}
+                                whileHover={{ scale: 1.05, rotate: 1 }}
+                                whileTap={{ scale: 0.98 }}
+                                className={`p-4 rounded-lg font-bold shadow-lg border-2 ${item.style}`}
+                            >
+                                {item.prize}
+                            </motion.div>
+                        ))}
                     </div>
                 </motion.div>
-
             </motion.div>
         </div>
     );

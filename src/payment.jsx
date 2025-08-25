@@ -116,12 +116,12 @@ function Payment() {
         
         // --- THIS LISTENER HANDLES THE REAL-TIME CLOSING ---
         socketRef.current.on("registrationStatus", (status) => {
-            if (status === "stop") {
+            if (status.isClosed) {
                 setClose(true);
             }
         });
         
-        // Emit an event to check the status when the page loads
+        
         socketRef.current.emit("check");
 
         return () => {
@@ -197,17 +197,20 @@ function Payment() {
     const labelStyles = "block mb-2 text-lg font-medium text-orange-300";
     const errorStyles = "text-red-400 text-sm mt-1";
 
-    // --- UPDATED: The message displayed when registrations are full ---
+    
     if (close) {
         return (
             <div className="bg-black w-full h-screen text-white text-xl flex flex-col justify-center items-center text-center p-4">
-                <h1 className="text-3xl font-bold text-orange-400">Registrations Are Now Full!</h1>
+                <h1 className="text-3xl font-bold text-orange-400">Registration Slots Are Filled!</h1>
                 <p className="mt-4 max-w-2xl">
-                    The 60-team limit has been reached. If you have already completed the payment, please contact the Scorecraft team to finalize your registration.
+                    If you have already completed the payment, please <strong>save your screenshot</strong>.
                 </p>
-                <a href="mailto:support@scorecraft.com" className="mt-6 text-orange-400 text-2xl underline hover:text-orange-500">
-                    Contact Scorecraft Team
-                </a>
+                <p className="mt-2 max-w-2xl">
+                    We will provide a refund form through which you can get your money back.
+                </p>
+                 <p className="mt-6 text-sm text-gray-400">
+                    - Thank you, Scorecraft Team
+                </p>
             </div>
         );
     }
