@@ -642,8 +642,9 @@ function Admin() {
                                     <div key={issue._id} className="bg-gray-800 rounded-lg p-4 shadow-md">
                                         <div className="flex justify-between items-start gap-4">
                                             <div>
-                                                <p className="font-bold text-lg text-white">{team.teamname}</p>
-                                                <p className="text-gray-400 text-sm mt-2 whitespace-pre-wrap">{issue.text}</p>
+                                                <p className="text-sm text-gray-400 mb-1">Sector: {team.Sector}</p>
+                                                <p className="font-bold text-lg text-white">Team Name: {team.teamname}</p>
+                                                <p className="text-gray-400 text-sm mt-2 whitespace-pre-wrap">Issue: {issue.text}</p>
                                             </div>
                                             <button onClick={() => handleResolveIssue(team._id, issue._id)} className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md whitespace-nowrap">Resolve</button>
                                         </div>

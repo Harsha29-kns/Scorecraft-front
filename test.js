@@ -130,7 +130,7 @@ async function runSocketTest() {
                 const payload = { 
                     // **FIX 1:** Changed 'id' to 'teamId' to match your server code
                     // **FIX 2:** Used the real _id you provided
-                    teamId: "68a605166d904f07ffae2b6c", 
+                    teamId: "68adc57b78645d0fbef6c69e", 
                     domain: "1"
                 };
                 // ========== MODIFIED CODE BLOCK END ==========
