@@ -6,6 +6,9 @@ import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import api from './api';
 
+// NOTE: The user's image has a 'One Piece' theme, but the code has a 'Naruto' theme.
+// I've kept the Naruto theme from the original code but used the layout from the image.
+// You can change 'narutoBgImage' and 'narutoFontStyle' to match your 'One Piece' theme.
 const narutoBgImage = "https://images.alphacoders.com/605/605592.png";
 const socket = io(api);
 
@@ -13,7 +16,7 @@ const narutoFontStyle = {
     fontFamily: "'Ninja Naruto', sans-serif",
 };
 
-// --- Animated Counter ---
+// --- Animated Counter (Still used in original code, can be removed if not needed elsewhere) ---
 function AnimatedCounter({ to }) {
     const [displayValue, setDisplayValue] = useState(0);
     useEffect(() => {
@@ -51,6 +54,7 @@ function CountdownTimer({ timeLeft }) {
 // --- Main Home Component ---
 function Home() {
     const nav = useNavigate();
+    // State related to registration slots is kept in case you want to use it elsewhere.
     const [teamCount, setTeamCount] = useState(0);
     const [regLimit, setRegLimit] = useState(60);
     const [isRegClosed, setIsRegClosed] = useState(true);
@@ -92,8 +96,6 @@ function Home() {
         return () => clearInterval(intervalId);
     }, [regOpenTime]);
 
-    const percentage = regLimit > 0 ? (teamCount / regLimit) * 100 : 0;
-
     return (
         <div 
             className="home relative w-full min-h-screen py-12 px-4 overflow-y-auto"
@@ -134,28 +136,32 @@ function Home() {
                         HackForge
                     </h1>
 
-                    {/* Countdown or Slots */}
+                    {/* Countdown or Info Boxes */}
                     <div className="mt-8 w-full max-w-md mx-auto">
                         {timeRemaining ? (
                             <CountdownTimer timeLeft={timeRemaining} />
                         ) : (
-                            <>
-                                <div className="text-center mb-4">
-                                    <h3 className="text-2xl text-orange-400 drop-shadow-[0_0_10px_rgba(255,140,0,0.9)]" style={narutoFontStyle}>Available Squad Slots</h3>
+                            // --- MODIFIED SECTION ---
+                            <div className="flex justify-center items-center gap-4 flex-wrap">
+                                {/* Box 1: Adventure Time */}
+                                <div className="flex flex-col items-center justify-center p-4 bg-black/50 rounded-lg shadow-md min-w-[120px]">
+                                    <span className="text-3xl font-bold text-white">24h</span>
+                                    <span className="text-sm text-gray-300">Hackathon Time</span>
                                 </div>
-                                <div className="relative pt-1">
-                                    <div className="flex mb-2 items-center justify-between text-gray-300">
-                                        <div><span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full bg-orange-500 text-white shadow-md">{`${Math.round(percentage)}% Full`}</span></div>
-                                        <div className="text-right"><span className="text-lg font-bold text-white"><AnimatedCounter to={teamCount} /> / {regLimit}</span></div>
-                                    </div>
-                                    <div className="overflow-hidden h-4 text-xs flex rounded-full bg-gray-700 border-2 border-gray-600">
-                                        <motion.div 
-                                            className="h-4 rounded-full bg-gradient-to-r from-orange-400 via-red-500 to-yellow-400 shadow-[0_0_10px_rgba(255,140,0,0.7)]"
-                                            initial={{ width: '0%' }} animate={{ width: `${percentage}%` }} transition={{ duration: 1.5, ease: "easeInOut" }}
-                                        ></motion.div>
-                                    </div>
+
+                                {/* Box 2: Treasure Pool */}
+                                <div className="flex flex-col items-center justify-center p-4 bg-black/50 rounded-lg shadow-md min-w-[120px]">
+                                    <span className="text-3xl font-bold text-white">₹15k+</span>
+                                    <span className="text-sm text-gray-300">Treasure Pool</span>
                                 </div>
-                            </>
+
+                                {/* Box 3: Pirates Team */}
+                                <div className="flex flex-col items-center justify-center p-4 bg-black/50 rounded-lg shadow-md min-w-[120px]">
+                                    <span className="text-3xl font-bold text-white">50+</span>
+                                    <span className="text-sm text-gray-300">Slots Team</span>
+                                </div>
+                            </div>
+                            // --- END OF MODIFIED SECTION ---
                         )}
                     </div>
                 </motion.div>
@@ -175,7 +181,7 @@ function Home() {
                             disabled={isRegClosed}
                         >
                             <span className="relative z-10">
-                                {isRegClosed ? "Registrations Are Closed" : "Register Now, Believe It!"}
+                                {isRegClosed ? "Registrations Are Closed" : "Registrations Are Opened!"}
                             </span>
                             {!isRegClosed && (
                                 <motion.div
@@ -198,10 +204,10 @@ function Home() {
                     </h1>
                     <div className="text-lg text-gray-200 space-y-4">
                         {[
-                            "Unleash your inner ninja and receive a random domain.",
-                            "Identify a real-world problem within your assigned village (domain).",
-                            "Develop an innovative jutsu (solution) to address the challenge.",
-                            "Foster critical thinking, problem-solving, and creativity.",
+                            "Choose Your Domain: Pick from a curated set of domains revealed at the event",
+                            "Identify a real-world problem within your selected domian.",
+                            "Develop an innovative solution to address the challenge.",
+                            "Collaborate & Compete: Team up, share ideas, and push creative boundaries.",
                             "Become a legend and contribute to meaningful advancements in KARE."
                         ].map((text, idx) => (
                             <motion.div

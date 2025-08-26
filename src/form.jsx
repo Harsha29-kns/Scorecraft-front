@@ -94,7 +94,7 @@ function Form() {
             );
         } else {
             setIsRegClosed(false);
-            setStatusMessage(`${status.count} out of ${status.limit} spots filled. Registrations are open!`);
+            setStatusMessage(`only  ${status.limit} slots avaliable. Register fast!`);
         }
     });
 
