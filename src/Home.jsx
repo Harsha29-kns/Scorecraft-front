@@ -14,7 +14,7 @@ const narutoFontStyle = {
     fontFamily: "'Ninja Naruto', sans-serif",
 };
 
-// --- Animated Counter (Still used in original code, can be removed if not needed elsewhere) ---
+
 function AnimatedCounter({ to }) {
     const [displayValue, setDisplayValue] = useState(0);
     useEffect(() => {
@@ -28,22 +28,32 @@ function AnimatedCounter({ to }) {
     return <span>{displayValue}</span>;
 }
 
-// --- Countdown Timer ---
+
 function CountdownTimer({ timeLeft }) {
+    const gifUrl = "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3bHFkeWJmYjcwZWl0dmhsZ2hnamFqbGU2N2NsaGVuMWdxZmE5aXd3OCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/ohT97gdpR40vK/giphy.gif";
+
     return (
         <div className="text-center">
             <h3 className="text-2xl text-orange-400 mb-4 drop-shadow-[0_0_8px_rgba(255,140,0,0.9)]" style={narutoFontStyle}>
                 Registration Opens In
             </h3>
             <div className="flex justify-center gap-4 text-white">
-                {Object.entries(timeLeft).map(([label, value], idx) => (
-                    <div key={idx} className="flex flex-col items-center p-3 bg-black/40 rounded-lg min-w-[70px] shadow-lg">
+                {Object.entries(timeLeft).map(([label, value]) => (
+                    <div key={label} className="flex flex-col items-center p-3 bg-black/40 rounded-lg min-w-[70px] shadow-lg">
                         <span className="text-5xl font-extrabold text-orange-400 drop-shadow-[0_0_10px_rgba(255,140,0,0.9)]">
                             {String(value).padStart(2, '0')}
                         </span>
                         <span className="text-xs uppercase tracking-widest">{label}</span>
                     </div>
                 ))}
+            </div>
+            {/* --- GIF ADDED HERE --- */}
+            <div className="mt-6">
+                <img 
+                    src={gifUrl} 
+                    alt="Naruto countdown gif" 
+                    className="mx-auto rounded-lg shadow-lg w-48 h-auto border-2 border-orange-500/50"
+                />
             </div>
         </div>
     );
@@ -280,7 +290,7 @@ function Home() {
                             <ul className="list-disc list-inside space-y-2 text-gray-300">
                                 <li>Teams earn <span className="text-yellow-300 font-semibold">extra scores</span>.</li>
                                 <li>Special <span className="text-pink-400 font-semibold">game prizes</span> for winners.</li>
-                                <li>Fun goodies + bonus points for participants 🎁</li>
+                                
                             </ul>
                         </motion.div>
                         {/* Support / Contact */}
