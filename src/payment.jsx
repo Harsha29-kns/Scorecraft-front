@@ -10,7 +10,7 @@ import anotherQr from "/public/qr2.png"; // A second QR code image
 import { io } from "socket.io-client";
 
 const narutoBgImage = "https://images6.alphacoders.com/605/605598.jpg";
-const narutoMusicUrl = "https://vgmsite.com/soundtracks/naruto-shippuden-ultimate-ninja-storm-4/xvyyfppc/1-01.%20Spiral%20of%20Fire.mp3";
+const narutoMusicUrl = "/music/payment.mp3";
 
 const paymentOptions = [
     { qrCode: qr, upiId: "check1@okhdfcbank" },
@@ -23,6 +23,7 @@ const MusicPlayer = ({ audioUrl }) => {
 
     useEffect(() => {
         const audioEl = audioRef.current;
+        
         if (isPlaying) {
             audioEl.play().catch(error => {
                 console.warn("Autoplay was prevented by the browser. User must interact to play music.");

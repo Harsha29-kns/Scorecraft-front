@@ -14,8 +14,29 @@ import king from "/public/king.png";
 import prob from "/public/prob.png";
 import domains from "/public/domains.png";
 import profile from "/public/Players_Profile.png";
+import hackforge from "/public/hackforge.png";
+import hr from "/public/24hr.png";
 
 const socket = io(api);
+
+const VideoBackground = () => (
+    <div className="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden">
+        <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover"
+        >
+            {/* This path works because the video is in the /public folder */}
+            <source src="/login-video.webm" type="video/webm" />
+            Your browser does not support the video tag.
+        </video>
+        {/* This overlay darkens the video to make text more readable */}
+        <div className="absolute top-0 left-0 w-full h-full bg-black/70"></div>
+    </div>
+);
+
 
 // --- MODAL STYLES ---
 const customModalStyles = {
@@ -837,8 +858,8 @@ socket.on("domaindata", (res) => {
                         <div className="h-8 w-px bg-white/20 hidden sm:block" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-orange-400 font-naruto">HACKFORGE</h1>
-                        <img src={expra} className="relative w-28" />
+                        <img src={hackforge} className="w-50 h-auto object-contain mx-auto" alt="Hackforge Icon" />
+                        
                     </div>
                 </div>
                 <div className="flex flex-wrap justify-center items-center gap-6">
@@ -867,15 +888,18 @@ socket.on("domaindata", (res) => {
 
     if (!localStorage.getItem("token")) {
         return (
-            <div className="min-h-screen flex flex-col justify-center items-center text-white p-4" style={{ backgroundImage: `url('https://images3.alphacoders.com/133/1332283.png')`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-                <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+            <div className="min-h-screen flex flex-col justify-center items-center text-white p-4">
+                {/* Add the new VideoBackground component here */}
+                <VideoBackground />
+
                 <div className="relative z-10 flex flex-col items-center text-center">
                     <div className="flex items-center mb-6">
                         <img src={scorecraft} className="h-24 rounded-full" alt="ScoreCraft Logo" />
                     </div>
-                    <h1 className="text-5xl md:text-6xl font-naruto text-orange-500 drop-shadow-lg tracking-wider">HACKFORGE</h1>
-                    <h2 className="text-orange-300 text-2xl mb-10">[ 24hr Hackathon ]</h2>
+                    <img src={hackforge} className="h-20 md:h-20 mt-2 mb-4 object-contain" alt="Hackforge Icon" />
+                    <img src={hr} className="h-15 md:h-10 mt-2 mb-6 object-contain" alt="24hr Logo" />
 
+                    {/* This semi-transparent card ensures your login form is clearly visible */}
                     <div className="relative bg-gray-900/50 border border-orange-500/50 text-white rounded-xl shadow-lg p-8 w-full max-w-md flex flex-col backdrop-blur-md">
                         {error && <p className="text-red-400 text-center mb-4">{error}</p>}
 
@@ -915,6 +939,7 @@ socket.on("domaindata", (res) => {
             </div>
         );
     }
+
 
     // --- ENHANCED DOMAIN SELECTION MODAL ---
     const DomainSelectionModal = () => (

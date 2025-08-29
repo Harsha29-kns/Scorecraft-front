@@ -5,10 +5,8 @@ import score from "/public/scorecraft.jpg";
 import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import api from './api';
+import hackforge from "/public/hackforge.png";
 
-// NOTE: The user's image has a 'One Piece' theme, but the code has a 'Naruto' theme.
-// I've kept the Naruto theme from the original code but used the layout from the image.
-// You can change 'narutoBgImage' and 'narutoFontStyle' to match your 'One Piece' theme.
 const narutoBgImage = "https://images.alphacoders.com/605/605592.png";
 const socket = io(api);
 
@@ -131,9 +129,10 @@ function Home() {
                         />
                     </div>
 
-                    <h2 className="text-2xl mt-2 text-gray-300 tracking-wider">Scorecraft KARE Presents</h2>
+                    <h2 className="text-2xl mt-2 text-orange-500 font-bold tracking-wider drop-shadow-lg">Scorecraft KARE Presents</h2>
+
                     <h1 className="text-6xl md:text-7xl font-black text-orange-500 my-4 tracking-widest drop-shadow-[0_0_15px_rgba(255,140,0,0.8)]" style={narutoFontStyle}>
-                        HackForge
+                        <img src={hackforge} className="w-100 h-auto object-contain mx-auto" alt="Hackforge Icon" />
                     </h1>
 
                     {/* Countdown or Info Boxes */}
