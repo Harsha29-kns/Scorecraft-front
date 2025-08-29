@@ -135,15 +135,15 @@ function Admin() {
         try {
             const formData = new FormData();
             formData.append("file", pptTemplate);
-            formData.append("upload_preset", "vh0llv8b");
+            formData.append("upload_preset", "ppt_templet");
 
             const response = await axios.post(
-                "https://api.cloudinary.com/v1_1/dus9hgplo/raw/upload",
+                "https://api.cloudinary.com/v1_1/dsvwojzli/raw/upload",
                 formData
             );
 
             const fileUrl = response.data.secure_url;
-            socket.emit('admin:sendPPT', { url: fileUrl, fileName: pptTemplate.name });
+            socket.emit('admin:sendPPT', { fileUrl: fileUrl, fileName: pptTemplate.name });
             setPptTemplate(null);
             document.getElementById('ppt-input').value = null;
             setNotification({ message: 'PPT Template Sent!', type: 'success' });

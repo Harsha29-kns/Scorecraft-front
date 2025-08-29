@@ -65,7 +65,7 @@ function Pics(){
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">{member.Sector ? member.Sector : "N/A" }</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                                         {member.GroupPic ?
-                                           (<img src={member?.GroupPic} className="h-10 w-10 rounded-full object-cover"/>):
+                                           (<img src={member?.GroupPic} className="h-25 w-30 rounded-full object-cover"/>):
                                            (<p>Not uploaded</p>)
                                         }
                                         </td>

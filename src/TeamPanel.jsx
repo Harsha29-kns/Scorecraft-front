@@ -6,7 +6,7 @@ import "driver.js/dist/driver.css";
 import Modal from 'react-modal';
 
 // Import your images
-import lod from "/image_processing20210907-13511-1juj33d.gif";
+import lod from "/public/loading.gif";
 import expra from "/public/expra.png";
 import scorecraft from "/public/scorecraft.jpg";
 import attd from "/public/attd.png";
@@ -61,11 +61,11 @@ const LeaderboardModal = ({ isOpen, onClose, leaderboard }) => (
         <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
             {leaderboard && leaderboard.length > 0 ? leaderboard.map((item, index) => (
                 <div key={index}
-                    className={`p-3 rounded-xl transition-all duration-300 flex items-center justify-between text-black ${
-                        index === 0 ? 'bg-gradient-to-r from-yellow-400 to-amber-500' :
-                        index === 1 ? 'bg-gradient-to-r from-gray-300 to-gray-400' :
-                        index === 2 ? 'bg-gradient-to-r from-orange-400 to-amber-600' :
-                        'bg-gray-600 text-white'}`}
+                     className={`p-3 rounded-xl transition-all duration-300 flex items-center justify-between text-black ${
+                         index === 0 ? 'bg-gradient-to-r from-yellow-400 to-amber-500' :
+                         index === 1 ? 'bg-gradient-to-r from-gray-300 to-gray-400' :
+                         index === 2 ? 'bg-gradient-to-r from-orange-400 to-amber-600' :
+                         'bg-gray-600 text-white'}`}
                 >
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold bg-white/30">
@@ -289,9 +289,12 @@ const CameraModal = ({ isOpen, onClose, onPhotoSubmit }) => {
             ctx.drawImage(video, 0, 0, photo.width, photo.height);
 
             const imageData = photo.toDataURL('image/jpeg');
+            const formData = new FormData();
+            formData.append("file", imageData);
+            formData.append("upload_preset", "Team_images");
             const cloudinaryResponse = await axios.post(
                 "https://api.cloudinary.com/v1_1/dsvwojzli/image/upload",
-                { file: imageData, upload_preset: "grouppic" }
+                formData
             );
 
             onPhotoSubmit(cloudinaryResponse.data.secure_url);
@@ -391,7 +394,6 @@ function TeamPanel() {
     const [teamName, setTeamName] = useState("");
     const [EventUp, setEventUp] = useState("");
     const [team, setTeam] = useState(null);
-    const [DomainLoading, setDomainLoading] = useState(false);
     const [link, setLink] = useState();
     const [DomainOpen, setDomainOpen] = useState(false);
     const [domainOpenTime, setDomainOpenTime] = useState(null);
@@ -407,9 +409,7 @@ function TeamPanel() {
     const [ProblemID, setProblemID] = useState();
     const [selectedDomain, setSelectedDomain] = useState();
     const [DomainData, setDomainData] = useState([]);
-    const [domain, setDomain] = useState("");
     const [isDomainModalOpen, setIsDomainModalOpen] = useState(false);
-    const [ProblemStatement, setProblemStatement] = useState("");
     const [problemSubmitting, setProblemSubmitting] = useState(false);
     const [problemError, setProblemError] = useState("");
     const [hasNewUpdate, setHasNewUpdate] = useState(false);
@@ -421,8 +421,16 @@ function TeamPanel() {
     const [issueText, setIssueText] = useState("");
     const [isSubmittingIssue, setIsSubmittingIssue] = useState(false);
     const [issueError, setIssueError] = useState("");
-    const [isCameraModalOpen, setIsCameraModalOpen] = useState(false); // New state for camera modal
+    const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
 
+    // --- MODIFIED: Renamed DomainLoading to isSubmittingDomain for clarity ---
+    const [isSubmittingDomain, setIsSubmittingDomain] = useState(false);
+    
+    // --- NEW: State to handle the initial loading of domain data in the modal ---
+    const [isDomainListLoading, setIsDomainListLoading] = useState(true);
+
+    const [ProblemStatement, setProblemStatement] = useState("");
+    
     // --- State for Modals ---
     const [isAssistanceModalOpen, setIsAssistanceModalOpen] = useState(false);
     const [isLeaderboardModalOpen, setIsLeaderboardModalOpen] = useState(false);
@@ -437,12 +445,9 @@ function TeamPanel() {
     // --- State for PPT Template ---
     const [pptData, setPptData] = useState(null);
 
-    // --- NEW: Fetch existing reminders and PPT data on component load ---
     useEffect(() => {
-        // This listener waits for the server to send the stored data
         socket.on("server:loadData", (data) => {
             if (data.reminders) {
-                // The time will be a string, so convert it back to a Date object for consistency
                 const formattedReminders = data.reminders.map(r => ({ ...r, time: new Date(r.time) }));
                 setReminders(formattedReminders);
             }
@@ -451,28 +456,36 @@ function TeamPanel() {
             }
         });
 
-        // Proactively ask the server for the data
         socket.emit("client:getData");
 
-        // Cleanup: remove the listener when the component is unmounted
         return () => {
             socket.off("server:loadData");
         };
-    }, []); // Empty dependency array means this effect runs only once on mount
+    }, []);
 
     const handleDomainSelect = (domainId) => {
         setSelectedDomain(domainId);
     };
 
     const handleDomain = async () => {
-        setDomainLoading(true);
+        // --- MODIFIED: Use the new state for submission ---
+        setIsSubmittingDomain(true);
         try {
             socket.emit("domainSelected", { teamId: team._id, domain: selectedDomain });
         } catch (error) {
-            setDomainLoading(false);
+            // --- MODIFIED: Update the correct loading state on error ---
+            setIsSubmittingDomain(false);
             console.log(error);
         }
     };
+    
+    // --- NEW: Function to handle opening the domain modal ---
+    const openDomainModal = () => {
+        setIsDomainModalOpen(true);
+        setIsDomainListLoading(true); // Set loading to true
+        socket.emit("domaindat", ""); // Request fresh domain data
+    };
+
 
     const handleIssueSubmit = async () => {
         if (!issueText.trim()) {
@@ -502,13 +515,14 @@ function TeamPanel() {
                 id: team._id,
                 photo: imageDataUrl,
             });
-            setTeam(response.data);
+            // Assuming the server responds with the updated team object
+            setTeam(prevTeam => ({...prevTeam, GroupPic: imageDataUrl }));
             setIsCameraModalOpen(false);
         } catch (err) {
             console.error("Photo upload error:", err);
-            // You can add a state to display this error in the main panel if needed.
         }
     };
+
 
     function Clock() {
         const [time, setTime] = useState(new Date().toLocaleTimeString());
@@ -560,7 +574,7 @@ function TeamPanel() {
             if (data && data.message) {
                 setActiveReminder(data.message);
                 setIsReminderModalOpen(true);
-                setReminders(prev => [...prev, { text: data.message, time: new Date(data.time) }]);
+                setReminders(prev => [...prev, { ...data, time: new Date(data.time) }]);
             }
         });
 
@@ -583,7 +597,7 @@ function TeamPanel() {
         });
 
         socket.on("client:receivePPT", (data) => {
-            if (data && data.url) {
+            if (data && data.fileUrl) { // Check for fileUrl now
                 setPptData(data);
                 try {
                     new Notification("New Presentation Template!", {
@@ -597,49 +611,66 @@ function TeamPanel() {
         });
 
         socket.on("domainSelected", (data) => {
-            if (data === "fulled") {
-                alert("Sorry, that domain is full. Please try again.");
-            }
-            setDomainLoading(false);
-            setIsDomainModalOpen(false);
-            if (pass) {
-                setLoading(true);
-                axios.post(`${api}/event/team/${pass}`)
-            .then((res) => {
-                setTeam(res.data);
-            })
-            .catch((err) => {
-                console.error("Failed to refetch team data:", err);
-                setError("Could not refresh team data. Please reload the page.");
-            })
-            .finally(() => {
-                setLoading(false);
-            });
-            }
-        });
+    // Always stop the submission loading spinner, regardless of outcome
+    setIsSubmittingDomain(false);
+
+    if (data.error) {
+        // Handle any error from the server (fulled, already selected, etc.)
+        alert(`Error: ${data.error}`);
+    } else if (data.success) {
+        // Handle success
+        alert(`Successfully selected domain: ${data.domain.name}!`);
+        setIsDomainModalOpen(false);
+        // Refetch team data to update the UI
+        if (pass) {
+            axios.post(`${api}/event/team/${pass}`)
+                .then(res => setTeam(res.data))
+                .catch(err => console.error("Failed to refetch team data:", err));
+        }
+    }
+});
+
+// Also update the domaindata listener slightly to stop the submission spinner
+// in case the server responds with 'fulled' on that channel.
+socket.on("domaindata", (res) => {
+    if (res.error === 'fulled') {
+        alert("That domain is now full. The list has been updated.");
+        setDomainData(res.domains || []);
+        setIsSubmittingDomain(false); // Stop submission spinner here too
+    } else {
+        setDomainData(res || []);
+    }
+    setIsDomainListLoading(false); 
+});
+
 
         socket.on("team", (team) => {
             setTeam(team);
         });
 
         socket.on("domainStat", (res) => {
-            if (res && !DomainOpen) {
+            if (typeof res === 'string' && new Date(res) > new Date()) {
+                setDomainOpen(false);
                 setDomainOpenTime(res);
-                const timeLeft = calculateTimeLeft(res);
-                setCountdownTime(timeLeft);
-                if (new Date(res) <= new Date()) {
-                    setDomainOpen(true);
-                } else {
-                    setDomainOpen(false);
-                }
             } else {
                 setDomainOpen(!!res);
+                setDomainOpenTime(null);
             }
         });
 
         socket.on("domaindata", (res) => {
-            setDomainData(res);
+            if (res.error === 'fulled') {
+                alert("That domain is now full. The list has been updated.");
+                setDomainData(res.domains || []);
+                // Stop submission spinner if the server responds on this channel
+                setIsSubmittingDomain(false);
+            } else {
+                setDomainData(res || []);
+            }
+            // Always stop the list loading spinner when data arrives
+            setIsDomainListLoading(false);
         });
+
 
         socket.on("leaderboard", (leaderboard) => {
             setLeaderboard(leaderboard.slice(0, 10));
@@ -689,7 +720,7 @@ function TeamPanel() {
         localStorage.setItem("team", JSON.stringify(team));
         Notification.requestPermission().then((res) => {
             if (res === "denied") {
-                alert("Please enable notifications for event updates.");
+                // You might want to be less intrusive, maybe show a small, dismissible message
             }
         });
     }, [team]);
@@ -889,17 +920,16 @@ function TeamPanel() {
     const DomainSelectionModal = () => (
         <Modal
             isOpen={isDomainModalOpen}
-            onRequestClose={() => !DomainLoading && setIsDomainModalOpen(false)} // Prevent closing while loading
+            onRequestClose={() => !isSubmittingDomain && setIsDomainModalOpen(false)} // Prevent closing while submitting
             style={customModalStyles}
             contentLabel="Domain Selection"
             appElement={document.getElementById('root') || undefined}
         >
-            <div className="text-white relative"> {/* Added relative positioning */}
-
-                {/* --- NEW: Loading Overlay --- */}
-                {DomainLoading && (
+            <div className="text-white relative">
+                {/* --- Loading overlay for SUBMITTING a domain --- */}
+                {isSubmittingDomain && (
                     <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm flex flex-col justify-center items-center rounded-lg z-20">
-                        <img src={lod} className="w-24 h-24" alt="Loading..." />
+                        <img src={lod} className="w-50 h-50" alt="Loading..." />
                         <p className="text-orange-400 font-naruto text-2xl mt-4 animate-pulse">Confirming Your Path...</p>
                         <p className="text-gray-300">Please wait.</p>
                     </div>
@@ -910,63 +940,58 @@ function TeamPanel() {
                     <button
                         onClick={() => setIsDomainModalOpen(false)}
                         className="text-gray-400 hover:text-white transition-colors text-2xl"
-                        disabled={DomainLoading} // Disable close button while loading
+                        disabled={isSubmittingDomain}
                     >
                         ✕
                     </button>
                 </div>
-
-                <div className="flex gap-6">
-                    {/* Scrollable grid for domains */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow max-h-[60vh] overflow-y-auto pr-4">
-                        {DomainData.map((domain) => {
-                            if (domain.slots === 0) {
-                                return (
-                                    <div key={domain.id} className="cursor-not-allowed p-4 rounded-xl bg-red-900/50 border-2 border-red-700">
-                                        <p className="text-xl text-red-300">Slots Filled</p>
-                                        <p className="text-gray-400">{domain.name}</p>
-                                    </div>
-                                );
-                            }
-                            return (
-                                <div
-                                    key={domain.id}
-                                    onClick={() => handleDomainSelect(domain.id)}
-                                    className={`cursor-pointer p-4 rounded-xl transition-all duration-300 border-2 ${domain.id === selectedDomain
-                                        ? 'bg-orange-600 text-white border-orange-400 scale-105'
-                                        : 'bg-gray-800 hover:bg-gray-700 border-gray-600'
-                                    }`}
-                                >
-                                    <h3 className="text-xl font-bold mb-2">{domain.name} ({domain.slots}/10)</h3>
-                                    <p className="text-sm opacity-80 line-clamp-3">{domain.description}</p>
-                                </div>
-                            );
-                        })}
+                
+                {/* --- NEW: Conditional rendering for INITIAL list loading --- */}
+                {isDomainListLoading ? (
+                    <div className="h-[60vh] flex flex-col justify-center items-center">
+                         <img src={lod} className="w-30 h-30" alt="Loading..." />
+                        <p className="text-orange-400 font-naruto text-2xl mt-4">Fetching Available Domains...</p>
                     </div>
+                ) : (
+                     <div className="flex gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow max-h-[60vh] overflow-y-auto pr-4">
+                             {DomainData.length > 0 ? DomainData.map((domain) => (
+                                 <div
+                                     key={domain.id}
+                                     onClick={() => domain.slots > 0 && handleDomainSelect(domain.id)}
+                                     className={`cursor-pointer p-4 rounded-xl transition-all duration-300 border-2 
+                                         ${domain.id === selectedDomain
+                                             ? 'bg-orange-600 text-white border-orange-400 scale-105'
+                                             : domain.slots === 0
+                                             ? 'bg-red-900/50 border-red-700 cursor-not-allowed opacity-60'
+                                             : 'bg-gray-800 hover:bg-gray-700 border-gray-600'
+                                         }`}
+                                 >
+                                     <h3 className="text-xl font-bold mb-2">{domain.name} ({domain.slots}/10)</h3>
+                                     <p className="text-sm opacity-80 line-clamp-3">{domain.description}</p>
+                                      {domain.slots === 0 && <p className="text-red-300 font-bold mt-2">Slots Filled</p>}
+                                 </div>
+                             )) : <p>No domains available to select.</p>}
+                         </div>
 
-                    {/* Buttons on the right side */}
-                    <div className="flex flex-col gap-4 w-48 shrink-0">
-                        <button
-                            onClick={handleDomain}
-                            className="w-full px-6 py-3 rounded-lg bg-orange-600 text-white hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                            disabled={!selectedDomain || DomainLoading}
-                        >
-                            {DomainLoading ? (
-                                <>
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    <span>Submitting...</span>
-                                </>
-                            ) : "Confirm Selection"}
-                        </button>
-                        <button
-                            onClick={() => setIsDomainModalOpen(false)}
-                            className="w-full px-6 py-3 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
-                            disabled={DomainLoading}
-                        >
-                            Cancel
-                        </button>
+                        <div className="flex flex-col gap-4 w-48 shrink-0">
+                            <button
+                                onClick={handleDomain}
+                                className="w-full px-6 py-3 rounded-lg bg-orange-600 text-white hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                disabled={!selectedDomain || isSubmittingDomain}
+                            >
+                                Confirm Selection
+                            </button>
+                            <button
+                                onClick={() => setIsDomainModalOpen(false)}
+                                className="w-full px-6 py-3 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
+                                disabled={isSubmittingDomain}
+                            >
+                                Cancel
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </Modal>
     );
@@ -1040,7 +1065,8 @@ function TeamPanel() {
                     <div className="text-center">
                         {DomainOpen ? (
                             <button
-                                onClick={() => setIsDomainModalOpen(true)}
+                                // --- MODIFIED: Use the new handler function ---
+                                onClick={openDomainModal}
                                 className="px-8 py-4 bg-white/20 hover:bg-white/30 transition-colors rounded-xl text-white font-bold"
                             >
                                 Select Your Domain
@@ -1060,7 +1086,7 @@ function TeamPanel() {
                     </div>
                 ) : (
                     <div className="bg-white/20 p-6 rounded-xl w-full max-w-md text-white">
-                        <h3 className="text-xl font-bold mb-2">{team?.Domain || domain}</h3>
+                        <h3 className="text-xl font-bold mb-2">{team?.Domain}</h3>
                         <p>
                             {DomainData.find((i) => i.name === team.Domain)?.description}
                         </p>
@@ -1291,11 +1317,8 @@ function TeamPanel() {
                                                         </div>
                                                         <p className="text-gray-500 text-xs mt-2 text-right">
                                                             {
-                                                                // First, check if issue.createdAt exists and results in a valid date
                                                                 issue.timestamp && !isNaN(new Date(issue.timestamp))
-                                                                    // If it's valid, format it
                                                                     ? new Date(issue.timestamp).toLocaleString()
-                                                                    // Otherwise, show a clean fallback
                                                                     : '—'
                                                             }
                                                         </p>
@@ -1309,7 +1332,7 @@ function TeamPanel() {
                                         </div>
                                     </div>
                                     {/* Reminders List */}
-                                    <div className="bg-gray-800/70 rounded-2xl p-4 md:p-6 border border-orange-500/30">
+                                    <div id="reminders" className="bg-gray-800/70 rounded-2xl p-4 md:p-6 border border-orange-500/30">
                                         <div className="flex justify-center items-center w-full mb-4">
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
                                             <h2 className="text-xl md:text-2xl text-center font-bold font-naruto text-orange-400">
@@ -1320,8 +1343,8 @@ function TeamPanel() {
                                             {reminders.length > 0 ? (
                                                 reminders.slice().reverse().map((reminder, index) => (
                                                     <div key={index} className="bg-gray-900/50 p-3 rounded-lg border border-gray-700">
-                                                        <p className="text-gray-300">{reminder.text}</p>
-                                                        <p className="text-gray-500 text-xs mt-1 text-right">{reminder.time.toLocaleTimeString()}</p>
+                                                        <p className="text-gray-300">{reminder.message}</p>
+                                                        <p className="text-gray-500 text-xs mt-1 text-right">{new Date(reminder.time).toLocaleTimeString()}</p>
                                                     </div>
                                                 ))
                                             ) : (
@@ -1343,7 +1366,7 @@ function TeamPanel() {
                                         <div className="text-center">
                                             {pptData ? (
                                                 <a
-                                                    href={pptData.url}
+                                                    href={pptData.fileUrl}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     download
