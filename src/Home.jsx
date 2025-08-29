@@ -95,19 +95,19 @@ function Home() {
     }, [regOpenTime]);
 
     return (
-        <div 
+        <div
             className="home relative w-full min-h-screen py-12 px-4 overflow-y-auto"
             style={{ backgroundImage: `url('${narutoBgImage}')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}
         >
             {/* Overlay */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80 backdrop-blur-sm animate-pulse-slow"></div>
 
-            <motion.div 
+            <motion.div
                 className="relative z-10 flex flex-col justify-start items-center w-full gap-12"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}
             >
                 {/* Header Card */}
-                <motion.div 
+                <motion.div
                     className="p-8 rounded-2xl bg-gray-900/70 border-2 border-orange-500/50 shadow-2xl max-w-3xl w-full text-center backdrop-blur-md"
                     initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.7, type: "spring" }}
                 >
@@ -172,7 +172,7 @@ function Home() {
                             Registrations will open soon...
                         </p>
                     ) : (
-                        <motion.button 
+                        <motion.button
                             className="relative bg-orange-500 text-white border-2 border-orange-600 py-3 px-8 rounded-lg shadow-lg text-lg font-bold overflow-hidden"
                             whileHover={{ scale: !isRegClosed ? 1.1 : 1, rotate: !isRegClosed ? -2 : 0, y: !isRegClosed ? -3 : 0 }}
                             whileTap={{ scale: 0.95 }}
@@ -194,17 +194,26 @@ function Home() {
                 </div>
 
                 {/* About Section */}
-                <motion.div 
-                    className="max-w-4xl p-8 bg-gray-900/70 text-white rounded-2xl shadow-xl border-2 border-orange-500/30 backdrop-blur-md"
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 1 }}
+                <motion.div
+                    className="max-w-5xl p-10 bg-gradient-to-b from-gray-900/90 via-black/80 to-gray-900/90 text-white rounded-3xl shadow-[0_0_30px_rgba(249,115,22,0.4)] border-2 border-orange-500/40 backdrop-blur-md"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3, duration: 1 }}
                 >
-                    <h1 className="text-3xl font-extrabold mb-6 text-center text-orange-400 drop-shadow-[0_0_10px_rgba(255,140,0,0.9)]" style={narutoFontStyle}>
-                        About the Event
+                    <h1
+                        className="text-4xl md:text-5xl font-extrabold mb-8 text-center text-orange-400 drop-shadow-[0_0_15px_rgba(255,140,0,0.9)]"
+                        style={narutoFontStyle}
+                    >
+                        🍥 About the Event 🍥
                     </h1>
-                    <div className="text-lg text-gray-200 space-y-4">
+
+                    <div className="text-lg text-gray-200 space-y-6 leading-relaxed">
                         {[
-                            "Choose Your Domain: Pick from a curated set of domains revealed at the event",
-                            "Identify a real-world problem within your selected domian.",
+                            "First come, first served! Only the first 60 teams to register will secure their spots.",
+                            "Dive into full-day hackathon action with Scorecraft KARE's Hackforge!",
+                            "Develop full-stack solutions in 24 hours.",
+                            "Choose Your Domain: Pick from a curated set of domains revealed at the event.",
+                            "Identify a real-world problem within your selected domain.",
                             "Develop an innovative solution to address the challenge.",
                             "Collaborate & Compete: Team up, share ideas, and push creative boundaries.",
                             "Become a legend and contribute to meaningful advancements in KARE."
@@ -217,24 +226,99 @@ function Home() {
                                 transition={{ delay: idx * 0.2 }}
                                 viewport={{ once: true }}
                             >
-                                <span className="text-orange-400 font-bold text-xl">🍥</span>
+                                <span className="text-orange-400 font-bold text-xl">🔥</span>
                                 <p>{text}</p>
                             </motion.div>
                         ))}
                     </div>
+
                 </motion.div>
 
-                {/* Prizes Section */}
-                <motion.div 
-                    className="mt-4 max-w-4xl p-8 bg-gray-900/70 text-white rounded-2xl shadow-xl border-2 border-orange-500/30 backdrop-blur-md"
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6, duration: 1 }}
+                {/* ⚡ Final Info Section */}
+                <motion.div
+                    className="mt-10 max-w-5xl p-10 bg-gradient-to-b from-black/80 via-gray-900/80 to-black/80 text-white rounded-3xl shadow-[0_0_25px_rgba(249,115,22,0.4)] border-2 border-orange-500/30 backdrop-blur-md"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5, duration: 1 }}
                 >
-                    <h1 className="text-3xl font-extrabold mb-6 text-center text-orange-400 drop-shadow-[0_0_10px_rgba(255,140,0,0.9)]" style={narutoFontStyle}>
-                        Prizes & Rewards
+                    <h1
+                        className="text-4xl font-extrabold mb-8 text-center text-orange-400 drop-shadow-[0_0_15px_rgba(255,140,0,0.9)]"
+                        style={narutoFontStyle}
+                    >
+                        ⚡ Important Information ⚡
                     </h1>
-                    <p className="text-lg text-gray-300 mb-6 text-center">Your hard work will be rewarded! Top shinobi will receive cash prizes, and all participants will earn scrolls of recognition.</p>
+
+                    <div className="grid md:grid-cols-2 gap-6 text-gray-200">
+                        {/* Registration & Verification */}
+                        <motion.div
+                            className="p-6 bg-black/50 border border-orange-500/30 rounded-2xl shadow-lg"
+                            whileHover={{ scale: 1.03 }}
+                        >
+                            <h2 className="text-xl font-bold text-orange-400 mb-3">📩 Registration & Verification</h2>
+                            <ul className="list-disc list-inside space-y-2 text-gray-300">
+                                <li>Team Lead gets a confirmation mail once registered (marked <span className="text-yellow-400 font-semibold">under verification</span>).</li>
+                                <li>After <span className="text-green-400 font-semibold">payment verification</span>, Team Lead receives a final confirmation mail.:
+                                    <ul className="list-decimal list-inside ml-5 mt-1 text-gray-400">
+                                        <li>QR Codes for attendance ✅</li>
+                                        <li>WhatsApp Group link 📲</li>
+                                    </ul>
+                                </li>
+                                <li>Team members must be added via WhatsApp group.</li>
+                                <li>All event updates will be shared in the WhatsApp group.</li>
+                            </ul>
+                        </motion.div>
+
+                        {/* Hackathon Game Info */}
+                        <motion.div
+                            className="p-6 bg-black/50 border border-orange-500/30 rounded-2xl shadow-lg"
+                            whileHover={{ scale: 1.03 }}
+                        >
+                            <h2 className="text-xl font-bold text-green-400 mb-3">🎮 Bonus Game Challenge</h2>
+                            <p className="mb-3 text-gray-300">
+                                During the <span className="text-orange-400 font-semibold">24hr Hackathon</span>, a fun mini-game will be conducted!
+                            </p>
+                            <ul className="list-disc list-inside space-y-2 text-gray-300">
+                                <li>Teams earn <span className="text-yellow-300 font-semibold">extra scores</span>.</li>
+                                <li>Special <span className="text-pink-400 font-semibold">game prizes</span> for winners.</li>
+                                <li>Fun goodies + bonus points for participants 🎁</li>
+                            </ul>
+                        </motion.div>
+                        {/* Support / Contact */}
+                        <motion.div
+                            className="p-6 bg-black/50 border border-orange-500/30 rounded-2xl shadow-lg md:col-span-2"
+                            whileHover={{ scale: 1.03 }}
+                        >
+                            <h2 className="text-xl font-bold text-red-400 mb-3">🆘 Need Help?</h2>
+                            <p className="text-gray-300">
+                                If you face any issues during registration, payment, or event participation,
+                                please reach out to the <span className="text-orange-400 font-semibold">Community Admins</span> for immediate support.
+                            </p>
+                        </motion.div>
+                    </div>
+                </motion.div>
+
+                {/* 🏆 Prizes & Rewards Section (Final) */}
+                <motion.div
+                    className="mt-10 max-w-4xl p-8 bg-gray-900/70 text-white rounded-2xl shadow-xl border-2 border-orange-500/30 backdrop-blur-md"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6, duration: 1 }}
+                >
+                    <h1
+                        className="text-3xl font-extrabold mb-6 text-center text-orange-400 drop-shadow-[0_0_10px_rgba(255,140,0,0.9)]"
+                        style={narutoFontStyle}
+                    >
+                        🏆 Prizes & Rewards
+                    </h1>
+
+                    <p className="text-lg text-gray-300 mb-6 text-center">
+                        Your hard work will be rewarded!
+                        <span className="text-orange-400 font-semibold"> Top shinobi</span> will receive cash prizes,
+                        and all participants will earn <span className="text-blue-300 font-semibold">scrolls of recognition</span>.
+                    </p>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
-                        {[ 
+                        {[
                             { prize: "🏆 1st Prize: ₹7000 + 2 Credits", style: "bg-yellow-400/80 text-gray-900 border-yellow-500" },
                             { prize: "🥈 2nd Prize: ₹5000 + 2 Credits", style: "bg-gray-300/80 text-gray-800 border-gray-400" },
                             { prize: "🥉 3rd Prize: ₹3000 + 2 Credits", style: "bg-orange-300/80 text-gray-800 border-orange-400" },
