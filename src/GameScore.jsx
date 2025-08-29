@@ -25,7 +25,7 @@ function GameScore({ team }) {
       });
 
       setCurrentScore(response.data.team.GameScore);
-      setMessage("Score updated successfully!");
+      setMessage("Score added successfully!");
       setNewScore("");
 
     } catch (error) {
@@ -51,12 +51,12 @@ function GameScore({ team }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor={`score-${team._id}`} className="block text-sm font-medium text-gray-300 mb-1">
-              Set New Total Score
+              Add Score
             </label>
             <input
               id={`score-${team._id}`}
               type="number"
-              placeholder="Enter new total score"
+              placeholder="Enter score to add"
               value={newScore}
               onChange={(e) => {
                 setNewScore(e.target.value);
@@ -84,7 +84,7 @@ function GameScore({ team }) {
                 Updating...
               </>
             ) : (
-              "Update Score"
+              "Add Score"
             )}
           </button>
         </form>
