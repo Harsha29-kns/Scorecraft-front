@@ -1071,7 +1071,7 @@ socket.on("domaindata", (res) => {
         <div id="domain-selection" className="w-full lg:w-1/2 flex flex-col gap-4">
             <div className="rounded-2xl h-96 bg-gray-800 flex items-center justify-center overflow-hidden">
                 <video
-                    src=""
+                    src="" // Replace video
                     autoPlay
                     loop
                     muted

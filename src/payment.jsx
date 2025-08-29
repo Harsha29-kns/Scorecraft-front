@@ -5,16 +5,18 @@ import { motion } from "framer-motion";
 import api from "./api"; // Assuming this is your API config
 import Modal from "./Model"; // Assuming this is your Modal component
 import done from "/public/1cbd3594bb5e8d90924a105d4aae924c.gif";
-import qr from "/public/qr1.jpg"; // Your QR code image
-import anotherQr from "/public/qr2.png"; // A second QR code image
+import ram from "/public/sriram.jpg"; // Your QR code image
+import anotherQr from "/public/qr2_pa.jpg"; // A second QR code image
+import harsha from "/public/harsha_qr.jpg"; // A third QR code image
 import { io } from "socket.io-client";
 
 const narutoBgImage = "https://images6.alphacoders.com/605/605598.jpg";
 const narutoMusicUrl = "/music/payment.mp3";
 
 const paymentOptions = [
-    { qrCode: qr, upiId: "check1@okhdfcbank" },
-    { qrCode: anotherQr, upiId: "check2@okaxis" },
+    { qrCode: ram, upiId: "9182913465@ibl" },
+    { qrCode: anotherQr, upiId: "9100133575-2@ybl" },
+    { qrCode: harsha, upiId: "7671084221@ibl" }
 ];
 
 const MusicPlayer = ({ audioUrl }) => {

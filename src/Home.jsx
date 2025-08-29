@@ -160,7 +160,7 @@ function Home() {
 
                                 {/* Box 2: Treasure Pool */}
                                 <div className="flex flex-col items-center justify-center p-4 bg-black/50 rounded-lg shadow-md min-w-[120px]">
-                                    <span className="text-3xl font-bold text-white">₹15k+</span>
+                                    <span className="text-3xl font-bold text-white">₹10k+</span>
                                     <span className="text-sm text-gray-300">Treasure Pool</span>
                                 </div>
 
@@ -329,9 +329,9 @@ function Home() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
                         {[
-                            { prize: "🏆 1st Prize: ₹7000 + 2 Credits", style: "bg-yellow-400/80 text-gray-900 border-yellow-500" },
-                            { prize: "🥈 2nd Prize: ₹5000 + 2 Credits", style: "bg-gray-300/80 text-gray-800 border-gray-400" },
-                            { prize: "🥉 3rd Prize: ₹3000 + 2 Credits", style: "bg-orange-300/80 text-gray-800 border-orange-400" },
+                            { prize: "🏆 1st Prize: ₹5000 + 2 Credits", style: "bg-yellow-400/80 text-gray-900 border-yellow-500" },
+                            { prize: "🥈 2nd Prize: ₹3000 + 2 Credits", style: "bg-gray-300/80 text-gray-800 border-gray-400" },
+                            { prize: "🥉 3rd Prize: ₹2000 + 2 Credits", style: "bg-orange-300/80 text-gray-800 border-orange-400" },
                             { prize: "📜 Certificate + 2 Credits for All Participants", style: "bg-blue-300/80 text-gray-800 border-blue-400" },
                         ].map((item, idx) => (
                             <motion.div
