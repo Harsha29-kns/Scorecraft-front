@@ -7,21 +7,19 @@ import { useNavigate } from "react-router-dom";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import Papa from "papaparse";
+import JSZip from 'jszip'; // Import JSZip
 
 const socket = io(api);
 
-// --- NEW: Notification Component ---
+// Notification Component
 const Notification = ({ message, type, onClear }) => {
     useEffect(() => {
-        // Automatically clear the notification after 3 seconds
         const timer = setTimeout(() => {
             onClear();
         }, 3000);
-
         return () => clearTimeout(timer);
     }, [onClear]);
 
-    // Determine styles based on the notification type (success or error)
     const baseStyles = "fixed top-20 right-6 z-50 px-6 py-4 rounded-xl shadow-2xl text-white font-semibold text-lg animate-fade-in-down";
     const typeStyles = type === 'success' 
         ? "bg-gradient-to-r from-green-500 to-emerald-600" 
@@ -54,7 +52,7 @@ const NarutoLoader = () => (
     </div>
 );
 
-// A simple card for displaying stats
+// Stat Card Component
 const StatCard = ({ title, value, color }) => (
     <div className={`bg-gray-800/50 border-2 ${color} p-6 rounded-xl shadow-lg text-center backdrop-blur-md`}>
         <h2 className="text-lg font-semibold text-white/80 mb-1">{title}</h2>
@@ -64,15 +62,15 @@ const StatCard = ({ title, value, color }) => (
 
 
 function Admin() {
-    // --- Authentication State ---
+    // Authentication State
     const [isAuthenticated, setIsAuthenticated] = useState(sessionStorage.getItem("adminAuthenticated") === "true");
     const [passwordInput, setPasswordInput] = useState("");
     const [loginError, setLoginError] = useState("");
 
-    // --- NEW: Notification State ---
+    // Notification State
     const [notification, setNotification] = useState({ message: '', type: '' });
 
-    // --- Dashboard States ---
+    // Dashboard States
     const [teams, setTeams] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sectors, setSectors] = useState(["Naruto", "Sasuke", "Itachi"]);
@@ -84,7 +82,7 @@ function Admin() {
     const [selectedAttdRound, setSelectedAttdRound] = useState(null);
     const navigate = useNavigate();
 
-    // --- Modal-specific States ---
+    // Modal-specific States
     const [showDomainModal, setShowDomainModal] = useState(false);
     const [allDomains, setAllDomains] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -99,13 +97,16 @@ function Admin() {
     const [isGeneratingPass, setIsGeneratingPass] = useState(false);
     const passContainerRef = useRef(null);
 
-    // --- NEW: State for PPT Template ---
+    // State for PPT Template
     const [pptTemplate, setPptTemplate] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadError, setUploadError] = useState("");
 
+    // State for Zipping
+    const [isZipping, setIsZipping] = useState(false);
+    const [zipProgress, setZipProgress] = useState({ current: 0, total: 0 });
 
-    // --- Handlers ---
+    // Handlers
     const handleLogin = (e) => {
         e.preventDefault();
         if (passwordInput === "harsha") {
@@ -362,13 +363,72 @@ function Admin() {
         }
     };
 
-    // --- Calculated Values ---
+    const handleDownloadAllPasses = async () => {
+        setIsZipping(true);
+        setZipProgress({ current: 0, total: 0 });
+        const zip = new JSZip();
+        const verifiedTeams = teams.filter(t => t.verified);
+
+        if (verifiedTeams.length === 0) {
+            setNotification({ message: 'No verified teams to export!', type: 'error' });
+            setIsZipping(false);
+            return;
+        }
+
+        setZipProgress({ current: 0, total: verifiedTeams.length });
+
+        try {
+            for (let i = 0; i < verifiedTeams.length; i++) {
+                const team = verifiedTeams[i];
+                setZipProgress({ current: i + 1, total: verifiedTeams.length });
+
+                const passElement = document.getElementById(`credential-pass-${team._id}`);
+                if (!passElement) {
+                    console.warn(`Pass element for team ${team.teamname} not found. Skipping.`);
+                    continue;
+                }
+
+                const canvas = await html2canvas(passElement, { scale: 2 });
+                const imgData = canvas.toDataURL('image/png');
+                
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'px',
+                    format: [canvas.width, canvas.height]
+                });
+
+                pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+                
+                const pdfBlob = pdf.output('blob');
+                const safeFileName = team.teamname.replace(/[/\\?%*:|"<>]/g, '-') || 'Unnamed Team';
+                zip.file(`${safeFileName}_Credentials.pdf`, pdfBlob);
+            }
+
+            const zipBlob = await zip.generateAsync({ type: "blob" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(zipBlob);
+            link.download = "All_Team_Credentials.zip";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setNotification({ message: 'All credentials zipped!', type: 'success' });
+
+        } catch (error) {
+            console.error("Error creating ZIP file:", error);
+            setNotification({ message: 'ZIP export failed!', type: 'error' });
+        } finally {
+            setIsZipping(false);
+            setZipProgress({ current: 0, total: 0 });
+        }
+    };
+
+    // Calculated Values
     const verifiedCount = teams.filter(t => t.verified).length;
     const notVerifiedCount = teams.length - verifiedCount;
     const filteredTeams = teams.filter(team => team.teamname.toLowerCase().includes(searchTerm.toLowerCase()));
     const pendingIssuesCount = teamsWithIssues.reduce((count, team) => count + team.issues.length, 0);
 
-    // --- UI Rendering ---
+    // UI Rendering
     if (!isAuthenticated) {
         return (
             <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundImage: `url('https://images6.alphacoders.com/605/605598.jpg')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
@@ -456,10 +516,10 @@ function Admin() {
                         Assign Sectors
                     </button>
                     <button
-                    onClick={() => { window.location.href = "/admin-controls"; }}
-                    className="w-full md:w-auto flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg transition-colors"
+                        onClick={() => { window.location.href = "/admin-controls"; }}
+                        className="w-full md:w-auto flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg transition-colors"
                     >
-                    Domain Controls
+                        Domain Controls
                     </button>
                     <button
                         className="w-full md:w-auto flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 px-8 rounded-lg transition-colors"
@@ -530,8 +590,9 @@ function Admin() {
                                 <h2 className="text-2xl text-cyan-400 font-naruto">Export Team Credentials</h2>
                                 <button className="text-gray-400 hover:text-white text-3xl" onClick={() => setShowCredentialModal(false)}>&times;</button>
                             </div>
-                            <div className="space-y-4">
-                                <p className="text-gray-300 text-center">Select a verified team to download their pass with the password and all member QR codes.</p>
+                            
+                            <div className="space-y-4 border-b border-gray-700 pb-6 mb-6">
+                                <p className="text-gray-300 text-center font-semibold">Download a Single Team Pass</p>
                                 <div className="flex flex-col sm:flex-row gap-4">
                                     <select
                                         value={selectedTeamForPass}
@@ -551,6 +612,25 @@ function Admin() {
                                         {isGeneratingPass ? (<><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />Generating...</>) : 'Download Pass (PDF)'}
                                     </button>
                                 </div>
+                            </div>
+
+                            <div className="space-y-4 text-center">
+                                <p className="text-gray-300 font-semibold">Download All Verified Team Passes</p>
+                                <p className="text-sm text-gray-500">This will generate a PDF for every verified team and download them in a single .zip file.</p>
+                                <button
+                                    onClick={handleDownloadAllPasses}
+                                    disabled={isZipping}
+                                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {isZipping ? (
+                                        <>
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                            Zipping... ({zipProgress.current} / {zipProgress.total})
+                                        </>
+                                    ) : (
+                                        'Download All as ZIP'
+                                    )}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -678,7 +758,7 @@ function Admin() {
                     </div>
                 )}
 
-                {/* --- MAIN CONTENT DISPLAY --- */}
+                {/* MAIN CONTENT DISPLAY */}
                 {loading ? (
                     <div className="flex justify-center items-center h-64"><NarutoLoader /></div>
                 ) : (
@@ -700,7 +780,7 @@ function Admin() {
                 )}
             </div>
 
-            {/* --- HIDDEN DIV FOR PDF GENERATION (WITH INLINE STYLES) --- */}
+            {/* HIDDEN DIV FOR PDF GENERATION */}
             <div ref={passContainerRef} style={{ position: 'absolute', left: '-9999px', top: 0, zIndex: -10 }}>
                 {teams.filter(t => t.verified).map(team => (
                     <div
@@ -708,7 +788,7 @@ function Admin() {
                         id={`credential-pass-${team._id}`}
                         style={{
                             width: '620px',
-                            minHeight: '877px', // A4 aspect ratio
+                            minHeight: '877px',
                             padding: '2rem',
                             backgroundColor: '#f5f5f5',
                             color: '#1a202c',
@@ -717,7 +797,6 @@ function Admin() {
                             overflow: 'hidden',
                         }}
                     >
-                        {/* Background shape element for visual flair */}
                         <div style={{
                             position: 'absolute',
                             top: '-50px',
@@ -793,7 +872,7 @@ function Admin() {
                             ))}
                         </div>
                         <div style={{ textAlign: 'center', marginTop: '2.5rem', color: '#718096', fontSize: '0.875rem' }}>
-    <p>ANY ISSUES CONTACT 7671084221</p>
+                            <p>ANY ISSUES CONTACT 7671084221</p>
                             <p>This pass must be presented for entry and attendance verification.</p>
                             <p>&copy; 2025 Scorecraft KARE</p>
                         </div>

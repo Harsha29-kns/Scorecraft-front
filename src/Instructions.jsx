@@ -146,9 +146,9 @@ function Instructions() {
                                         ease: "easeInOut",
                                     }
                                 }}
-                                onClick={() => nav("/teampanel")}
+                                onClick={() => nav("/teamlogin")}
                             >
-                                Proceed to Team Panel
+                                Proceed to Team Login
                             </motion.button>
                         </div>
                     </motion.div>

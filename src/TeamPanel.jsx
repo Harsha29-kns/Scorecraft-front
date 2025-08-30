@@ -16,6 +16,10 @@ import domains from "/public/domains.png";
 import profile from "/public/Players_Profile.png";
 import hackforge from "/public/hackforge.png";
 import hr from "/public/24hr.png";
+import domain from "/public/domain.png";
+import narutoLeaf from '/public/present.png';
+import absent from '/public/ab.png';
+
 
 const socket = io(api);
 
@@ -106,64 +110,126 @@ const LeaderboardModal = ({ isOpen, onClose, leaderboard }) => (
 );
 
 const AttendanceModal = ({ isOpen, onClose, team, attendanceClass, attendanceIcon }) => {
-    const getAttendanceStatus = (member, round) => {
-        if (!member || !member.attendance || !Array.isArray(member.attendance)) {
-            return null;
-        }
-        const attendanceRecord = member.attendance.find(a => a.round == round);
-        return attendanceRecord ? attendanceRecord.status : null;
-    };
+  const [openAccordion, setOpenAccordion] = useState(null);
 
-    return (
-        <Modal
-            isOpen={isOpen}
-            onRequestClose={onClose}
-            style={{ ...customModalStyles, width: '800px', maxWidth: '95vw' }}
-            contentLabel="Attendance Tracker"
-            appElement={document.getElementById('root') || undefined}
-        >
-            <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-3">
-                    <img src={attd} className="w-12" alt="Attendance Icon" />
-                    <h2 className="text-2xl font-bold text-orange-400 font-naruto">ATTENDANCE TRACKER</h2>
+  const toggleAccordion = (memberId) => {
+    setOpenAccordion(openAccordion === memberId ? null : memberId);
+  };
+
+  const getAttendanceStatus = (member, round) => {
+    if (!member || !member.attendance || !Array.isArray(member.attendance)) {
+      return null;
+    }
+    const attendanceRecord = member.attendance.find(a => a.round === round);
+    return attendanceRecord ? attendanceRecord.status : null;
+  };
+
+  const rounds = [1, 2, 3, 4];
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onRequestClose={onClose}
+      style={customModalStyles}
+      contentLabel="Attendance Tracker"
+      appElement={document.getElementById('root') || undefined}
+    >
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-3">
+          <img src={attd} className="w-12" alt="Attendance Icon" />
+          <h2 className="text-2xl font-bold text-orange-400 font-naruto">ATTENDANCE TRACKER</h2>
+        </div>
+        <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors text-3xl font-light">×</button>
+      </div>
+
+      <div className="max-h-[60vh] overflow-y-auto pr-2">
+        {team ? (
+          <>
+            {/* Header row as reference */}
+            <div className="grid grid-cols-5 bg-gray-900 sticky top-0 text-white font-bold text-lg px-4 py-2 rounded-t">
+              <div>Name</div>
+              {rounds.map(round => (
+                <div key={round} className="text-center">
+                     </div>
+              ))}
+            </div>
+            {/* Lead as accordion */}
+            <div className="bg-gray-800 border border-gray-700 rounded-b mb-2 overflow-hidden">
+              <button
+                className="w-full flex justify-between items-center px-4 py-3 text-left hover:bg-gray-700 transition"
+                onClick={() => toggleAccordion('lead')}
+              >
+                <span className="font-medium text-orange-400">{team.name} (Lead)</span>
+                <svg
+                  className={`w-5 h-5 text-gray-400 transform transition-transform ${openAccordion === 'lead' ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+              <div className={`transition-all duration-300 ease-in-out px-4 border-t border-gray-700 ${openAccordion === 'lead' ? 'max-h-40 opacity-100 py-4' : 'max-h-0 opacity-0 py-0 overflow-hidden'}`}>
+                <div className="grid grid-cols-4 gap-4 justify-center">
+                  {rounds.map(round => {
+                    const status = getAttendanceStatus(team.lead, round);
+                    return (
+                      <div key={round} className="text-center" title={`Round ${round}: ${status || 'Not Marked'}`}>
+                        <p className="text-sm text-gray-400">Round {round}</p>
+                        <p className={`mt-1 text-2xl font-bold ${attendanceClass(status)}`}>
+                          {attendanceIcon(status)}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
-                <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors text-3xl font-light">×</button>
+              </div>
             </div>
-            <div className="overflow-x-auto max-h-[60vh] pr-2">
-                {team ? (
-                    <table className="min-w-full divide-y divide-gray-700 text-sm md:text-base">
-                        <thead className="bg-gray-900 sticky top-0">
-                            <tr className="text-white font-bold">
-                                <th className="px-4 py-3 text-left text-lg">Name</th>
-                                <th className="px-4 py-3 text-lg">Round 1</th>
-                                <th className="px-4 py-3 text-lg">Round 2</th>
-                                <th className="px-4 py-3 text-lg">Round 3</th>
-                                <th className="px-4 py-3 text-lg">Round 4</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-gray-800">
-                            <tr>
-                                <td className="border-t border-gray-700 px-4 py-2 font-medium">{team.name} (Lead)</td>
-                                <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(getAttendanceStatus(team.lead, 1))}>{attendanceIcon(getAttendanceStatus(team.lead, 1))}</div></td>
-                                <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(getAttendanceStatus(team.lead, 2))}>{attendanceIcon(getAttendanceStatus(team.lead, 2))}</div></td>
-                                <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(getAttendanceStatus(team.lead, 3))}>{attendanceIcon(getAttendanceStatus(team.lead, 3))}</div></td>
-                                <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(getAttendanceStatus(team.lead, 4))}>{attendanceIcon(getAttendanceStatus(team.lead, 4))}</div></td>
-                            </tr>
-                            {team.teamMembers.map((member, index) => (
-                                <tr key={`${member.registrationNumber}-${index}`}>
-                                    <td className="border-t border-gray-700 px-4 py-2">{member.name}</td>
-                                    <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(getAttendanceStatus(member, 1))}>{attendanceIcon(getAttendanceStatus(member, 1))}</div></td>
-                                    <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(getAttendanceStatus(member, 2))}>{attendanceIcon(getAttendanceStatus(member, 2))}</div></td>
-                                    <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(getAttendanceStatus(member, 3))}>{attendanceIcon(getAttendanceStatus(member, 3))}</div></td>
-                                    <td className="border-t border-gray-700 px-4 py-2"><div className={attendanceClass(getAttendanceStatus(member, 4))}>{attendanceIcon(getAttendanceStatus(member, 4))}</div></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                ) : <p className="text-center text-gray-400 py-4">Loading attendance data...</p>}
-            </div>
-        </Modal>
-    );
+            {/* Team members as accordions */}
+            {team.teamMembers.map((member, idx) => {
+              const memberId = member.registrationNumber || idx;
+              const isOpen = openAccordion === memberId;
+              return (
+                <div key={memberId} className="bg-gray-800 border border-gray-700 rounded mb-2 overflow-hidden">
+                  <button
+                    className="w-full flex justify-between items-center px-4 py-3 text-left hover:bg-gray-700 transition"
+                    onClick={() => toggleAccordion(memberId)}
+                  >
+                    <span className="font-medium">{member.name}</span>
+                    <svg
+                      className={`w-5 h-5 text-gray-400 transform transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+                  <div className={`transition-all duration-300 ease-in-out px-4 border-t border-gray-700 ${isOpen ? 'max-h-40 opacity-100 py-4' : 'max-h-0 opacity-0 py-0 overflow-hidden'}`}>
+                    <div className="grid grid-cols-4 gap-4 justify-center">
+                      {rounds.map(round => {
+                        const status = getAttendanceStatus(member, round);
+                        return (
+                          <div key={round} className="text-center" title={`Round ${round}: ${status || 'Not Marked'}`}>
+                            <p className="text-sm text-gray-400">Round {round}</p>
+                            <p className={`mt-1 text-2xl font-bold ${attendanceClass(status)}`}>
+                              {attendanceIcon(status)}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        ) : (
+          <p className="text-center text-gray-400 py-4">Loading attendance data...</p>
+        )}
+      </div>
+    </Modal>
+  );
 };
 
 const ReminderModal = ({ isOpen, onClose, reminderText }) => (
@@ -783,17 +849,49 @@ socket.on("domaindata", (res) => {
                 return 'bg-gray-500/20 border-2 border-gray-400 rounded-full w-8 h-8 mx-auto flex items-center justify-center';
         }
     };
+    
 
     const attendanceIcon = (attendance) => {
-        switch (attendance) {
-            case 'Present':
-                return '✓';
-            case 'Absent':
-                return '✕';
-            default:
-                return '';
-        }
-    };
+    switch (attendance) {
+        case 'Present':
+        return (
+            <div
+            className="bg-green-500 rounded-full flex items-center justify-center"
+            style={{ width: 36, height: 3 }}
+            >
+            <img
+                src={narutoLeaf}
+                alt="Naruto Leaf"
+                style={{ width: 30, height: 20 }}
+            />
+            </div>
+        );
+        case 'Absent':
+        return (
+            <div
+            className="bg-red-500 rounded-full flex items-center justify-center"
+            style={{ width: 42, height: 2 }}
+            >
+                        <img
+                src={absent}
+                alt="Naruto Leaf"
+                style={{ width: 40, height: 30 }}
+            />
+            
+            </div>
+        );
+        default:
+        return (
+            <div
+            className="bg-gray-300 rounded-full flex items-center justify-center"
+            style={{ width: 32, height: 32 }}
+            >
+            <span style={{ fontSize: 20, color: '#666' }}>?</span>
+            </div>
+        );
+    }
+};
+
 
     const handleProblemStatement = async () => {
         if (!ProblemStatement.trim()) {
@@ -1069,28 +1167,15 @@ socket.on("domaindata", (res) => {
 
     const DomainSelectionSection = () => (
         <div id="domain-selection" className="w-full lg:w-1/2 flex flex-col gap-4">
-            <div className="rounded-2xl h-96 bg-gray-800 flex items-center justify-center overflow-hidden">
-                <video
-                    src="" // Replace video
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover"
-                >
-                    Your browser does not support the video tag.
-                </video>
-            </div>
             <div className="rounded-2xl p-6 bg-orange-600 h-96 flex flex-col justify-center items-center">
                 <div className="flex justify-center items-center w-full">
-                    <img src={domains} className="w-8 relative bottom-2 right-1" />
-                    <h2 className="text-2xl text-white font-bold mb-4 text-center font-naruto">YOUR DOMAIN</h2>
+                    <img src={domain} className="w-70" alt="Domain Selection Icon" />
+                    
                 </div>
                 {!team.Domain ? (
                     <div className="text-center">
                         {DomainOpen ? (
                             <button
-                                // --- MODIFIED: Use the new handler function ---
                                 onClick={openDomainModal}
                                 className="px-8 py-4 bg-white/20 hover:bg-white/30 transition-colors rounded-xl text-white font-bold"
                             >
@@ -1475,15 +1560,16 @@ socket.on("domaindata", (res) => {
                         <p className="text-center text-xl mt-10">Failed to load team data. Please refresh the page and try again.</p>
                     )
                 )}
-                <footer className="w-full bg-gray-900/50 backdrop-blur-sm border-t border-orange-500/20 mt-12 py-8">
+                <footer className="w-full bg-gray-900/50 backdrop-blur-sm border-t border-orange-500/20 mt-12 py-2">
     <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             
             <div className="flex flex-col items-center md:items-start">
                 <div className="flex items-center gap-3 mb-4">
                     <img src={scorecraft} className="w-12 h-12 rounded-full" alt="Logo" />
                     <div>
                         <h2 className="text-xl font-bold text-orange-400 font-naruto">HACKFORGE</h2>
+                        
                         <p className="text-sm text-gray-400">24hr Hackathon</p>
                     </div>
                 </div>

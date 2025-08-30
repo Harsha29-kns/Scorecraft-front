@@ -222,11 +222,7 @@ function Home() {
                             "First come, first served! Only the first 60 teams to register will secure their spots.",
                             "Dive into full-day hackathon action with Scorecraft KARE's Hackforge!",
                             "Develop full-stack solutions in 24 hours.",
-                            "Choose Your Domain: Pick from a curated set of domains revealed at the event.",
-                            "Identify a real-world problem within your selected domain.",
-                            "Develop an innovative solution to address the challenge.",
-                            "Collaborate & Compete: Team up, share ideas, and push creative boundaries.",
-                            "Become a legend and contribute to meaningful advancements in KARE."
+                            
                         ].map((text, idx) => (
                             <motion.div
                                 key={idx}
@@ -289,7 +285,7 @@ function Home() {
                             </p>
                             <ul className="list-disc list-inside space-y-2 text-gray-300">
                                 <li>Teams earn <span className="text-yellow-300 font-semibold">extra scores</span>.</li>
-                                <li>Special <span className="text-pink-400 font-semibold">game prizes</span> for winners.</li>
+                                
                                 
                             </ul>
                         </motion.div>

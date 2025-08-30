@@ -24,7 +24,7 @@ function App() {
         <Route path='/payment' element={<Payment/>}/>
         <Route path='/admin-login' element={<Admin/>}/>
         <Route path='/attd' element={<Attd/>}/>
-        <Route path='/teampanel' element={<TeamPanel/>}/>
+        <Route path='/teamlogin' element={<TeamPanel/>}/>
         <Route path='/marks' element={<Marks/>}/>
         <Route path="/all-teams" element={<AllTeams />}/>
         <Route path='/leaderboard' element={<Leaderboard/>}/>
